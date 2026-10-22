@@ -1,0 +1,1124 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "#%@" : {
+
+    },
+    "%@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@ %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$lld"
+          }
+        }
+      }
+    },
+    "%@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld digits entered" : {
+
+    },
+    "%lld Notes" : {
+
+    },
+    "%lld. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld. %2$@"
+          }
+        }
+      }
+    },
+    "8 to 64 characters. Not a common word, and not a simple pattern." : {
+
+    },
+    "A second phrase opens a separate set of ordinary sample notes. It does not open these notes, and it does not ask for Face ID. Use a phrase you will not mix up with this one." : {
+
+    },
+    "A second set of notes, encrypted on this device. It does not show up in your notes list. You open it by typing a secret phrase into Search and pressing Return, then confirming with Face ID or your device passcode." : {
+
+    },
+    "Accounts" : {
+
+    },
+    "Add" : {
+
+    },
+    "Add Link" : {
+
+    },
+    "Add to note" : {
+
+    },
+    "Advanced" : {
+
+    },
+    "After %lld failed confirmations" : {
+
+    },
+    "All Files" : {
+
+    },
+    "Already saved" : {
+
+    },
+    "Ascending" : {
+
+    },
+    "Ask again for risky actions" : {
+
+    },
+    "At least %lld characters. Spaces at the ends are ignored, and capital letters don't matter." : {
+
+    },
+    "At least 8 characters. Case-sensitive. This is not your search phrase, and it is not saved in the app." : {
+
+    },
+    "Attach File" : {
+
+    },
+    "Back" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        }
+      }
+    },
+    "Backup password" : {
+
+    },
+    "Biometry" : {
+
+    },
+    "Body" : {
+
+    },
+    "Bold" : {
+
+    },
+    "Bulleted List" : {
+
+    },
+    "Camera" : {
+
+    },
+    "Can evaluate" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Capture a thought. It stays on this device." : {
+
+    },
+    "Change passcode" : {
+
+    },
+    "Change Passcode" : {
+
+    },
+    "Change phrase" : {
+
+    },
+    "Clear usage history" : {
+
+    },
+    "Confirm it's you" : {
+
+    },
+    "Confirm new passcode" : {
+
+    },
+    "Confirm new phrase" : {
+
+    },
+    "Confirm passcode" : {
+
+    },
+    "Confirm password" : {
+
+    },
+    "Confirm phrase" : {
+
+    },
+    "Confirm the passcode" : {
+
+    },
+    "Continue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        }
+      }
+    },
+    "Copies the Recovery Key" : {
+
+    },
+    "Copy" : {
+
+    },
+    "Couldn't save this note" : {
+
+    },
+    "Create" : {
+
+    },
+    "Current passcode" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete All" : {
+
+    },
+    "Delete notes" : {
+
+    },
+    "Delete private notes" : {
+
+    },
+    "Delete this file permanently?" : {
+
+    },
+    "Delete this file?" : {
+
+    },
+    "Delete this note permanently?" : {
+
+    },
+    "Delete this note?" : {
+
+    },
+    "Deleted %@" : {
+
+    },
+    "Deletion asks you to confirm it's you and to type the phrase. This cannot be undone." : {
+
+    },
+    "Descending" : {
+
+    },
+    "Device backup" : {
+
+    },
+    "Device warning" : {
+
+    },
+    "Don't ask again" : {
+
+    },
+    "Don't ask again?" : {
+
+    },
+    "Done" : {
+
+    },
+    "Done Selecting" : {
+
+    },
+    "Drawing" : {
+
+    },
+    "Duplicate" : {
+
+    },
+    "Edit" : {
+
+    },
+    "Empty" : {
+
+    },
+    "Enable Private Vault" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Private Vault"
+          }
+        }
+      }
+    },
+    "Encrypted notes and files are included in an iPhone backup when this is on. The key stays on this iPhone, so the Files app and a backup alone cannot open them. Export is the way to move them." : {
+
+    },
+    "Encrypted notes and files can be included in an iPhone backup. The key stays on this iPhone, so the backup alone cannot open them. If this is on, a long letters-and-numbers passcode is recommended." : {
+
+    },
+    "Enter the passcode" : {
+
+    },
+    "Equation" : {
+
+    },
+    "Erase after repeated failures" : {
+
+    },
+    "Everyday notes, plus a hidden vault that stays encrypted on this iPhone." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everyday notes, plus a hidden vault that stays encrypted on this iPhone."
+          }
+        }
+      }
+    },
+    "Example: E = mc^2" : {
+
+    },
+    "Export" : {
+
+    },
+    "Export backup" : {
+
+    },
+    "Export encrypted backup" : {
+
+    },
+    "Export without location" : {
+
+    },
+    "Export, emptying Recently Deleted, permanent delete, and deleting a folder can skip the next ask during that window. Changing the passcode, Face ID, backup, or deleting everything always asks." : {
+
+    },
+    "Exported files leave the protected vault." : {
+
+    },
+    "Face ID" : {
+
+    },
+    "Face ID Diagnostics" : {
+
+    },
+    "Face ID does not fall back to your iPhone passcode. The 6-digit passcode is only for NoteLy, and you can change it here." : {
+
+    },
+    "Face ID isn't available on this device. You'll use the vault passcode." : {
+
+    },
+    "Face ID or your device passcode confirms the change. The notes stay encrypted with the same key. If you forget the new phrase, there is no recovery." : {
+
+    },
+    "Favorite" : {
+
+    },
+    "Favorite %@" : {
+
+    },
+    "Favorites" : {
+
+    },
+    "Favorites Only" : {
+
+    },
+    "File can't be opened" : {
+
+    },
+    "File type" : {
+
+    },
+    "Files" : {
+
+    },
+    "Filter" : {
+
+    },
+    "Find" : {
+
+    },
+    "Find in Note" : {
+
+    },
+    "Folder name" : {
+
+    },
+    "Folder Passcode" : {
+
+    },
+    "Folders" : {
+
+    },
+    "Format" : {
+
+    },
+    "Goes to the next step" : {
+
+    },
+    "Grid" : {
+
+    },
+    "Grocery list" : {
+
+    },
+    "Group By Date" : {
+
+    },
+    "Heading" : {
+
+    },
+    "Highlight" : {
+
+    },
+    "How it works" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How it works"
+          }
+        }
+      }
+    },
+    "https://" : {
+
+    },
+    "I saved it" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I saved it"
+          }
+        }
+      }
+    },
+    "If you forget the vault passcode and you have no Recovery Key, the vault cannot be recovered." : {
+
+    },
+    "If you forget this phrase, private notes cannot be recovered. There is no reset." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you forget this phrase, private notes cannot be recovered. There is no reset."
+          }
+        }
+      }
+    },
+    "Import" : {
+
+    },
+    "Import backup" : {
+
+    },
+    "Import encrypted backup" : {
+
+    },
+    "Include encrypted files in device backup" : {
+
+    },
+    "Include vault in device backups (encrypted)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Include vault in device backups (encrypted)"
+          }
+        }
+      }
+    },
+    "Insert" : {
+
+    },
+    "It moves to Recently Deleted. You can recover it from there." : {
+
+    },
+    "Italic" : {
+
+    },
+    "Items without a check were skipped. You can change them later inside the vault." : {
+
+    },
+    "Keep Both" : {
+
+    },
+    "Keep the key" : {
+
+    },
+    "Last error code" : {
+
+    },
+    "Lines & Grids" : {
+
+    },
+    "Link to a note" : {
+
+    },
+    "List" : {
+
+    },
+    "Loading photo" : {
+
+    },
+    "Loading preview" : {
+
+    },
+    "Lock" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock"
+          }
+        }
+      }
+    },
+    "Lock now" : {
+
+    },
+    "Lock when idle" : {
+
+    },
+    "Locked" : {
+
+    },
+    "Locking" : {
+
+    },
+    "Manual shows starred items. Most Used ranks what you keep open. Both puts stars first." : {
+
+    },
+    "Monospaced" : {
+
+    },
+    "Move" : {
+
+    },
+    "Move Note" : {
+
+    },
+    "Move notes" : {
+
+    },
+    "Name" : {
+
+    },
+    "Never keeps this area open while NoteLy is on screen. It still locks when you leave the app or tap Lock now." : {
+
+    },
+    "New folder" : {
+
+    },
+    "New Folder" : {
+
+    },
+    "New note" : {
+
+    },
+    "New passcode" : {
+
+    },
+    "New phrase" : {
+
+    },
+    "New Smart Folder" : {
+
+    },
+    "Next" : {
+
+    },
+    "No camera" : {
+
+    },
+    "No deleted files" : {
+
+    },
+    "No deleted notes" : {
+
+    },
+    "No matching notes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matching notes"
+          }
+        }
+      }
+    },
+    "No Notes" : {
+
+    },
+    "No notes yet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No notes yet"
+          }
+        }
+      }
+    },
+    "No private notes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No private notes"
+          }
+        }
+      }
+    },
+    "Not now" : {
+
+    },
+    "Note" : {
+
+    },
+    "Note body" : {
+
+    },
+    "NoteLy" : {
+
+    },
+    "NoteLy asks only when you use a feature. You can say no and keep going." : {
+
+    },
+    "NoteLy couldn't open its notes database. Restart the app and try again." : {
+
+    },
+    "NoteLy keeps your notes on this device and does not send note contents anywhere." : {
+
+    },
+    "Notes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes"
+          }
+        }
+      }
+    },
+    "Notes couldn't be opened" : {
+
+    },
+    "Notes stay on this iPhone. iCloud, Exchange, Google, and Yahoo accounts are not connected." : {
+
+    },
+    "Nothing in this filter." : {
+
+    },
+    "Numbered List" : {
+
+    },
+    "OK" : {
+
+    },
+    "On My iPhone" : {
+
+    },
+    "Opening your vault" : {
+
+    },
+    "Order" : {
+
+    },
+    "Panic erase" : {
+
+    },
+    "Paper" : {
+
+    },
+    "Passcode" : {
+
+    },
+    "Passcode type" : {
+
+    },
+    "Photo" : {
+
+    },
+    "Photo or Video" : {
+
+    },
+    "Photos" : {
+
+    },
+    "Photos or Videos" : {
+
+    },
+    "Photos, videos, and files you add here stay encrypted on this device." : {
+
+    },
+    "Pick something you'd never search by accident." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick something you'd never search by accident."
+          }
+        }
+      }
+    },
+    "Pin" : {
+
+    },
+    "Pinned" : {
+
+    },
+    "Practice search" : {
+
+    },
+    "Practice vault opened. No notes were changed." : {
+
+    },
+    "Previous" : {
+
+    },
+    "Print" : {
+
+    },
+    "Private" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private"
+          }
+        }
+      }
+    },
+    "Private Settings" : {
+
+    },
+    "Private Vault" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Vault"
+          }
+        }
+      }
+    },
+    "Quick Note" : {
+
+    },
+    "Rebuild Thumbnails" : {
+
+    },
+    "Recently Deleted" : {
+
+    },
+    "Record" : {
+
+    },
+    "Record Audio" : {
+
+    },
+    "Recover" : {
+
+    },
+    "Redo" : {
+
+    },
+    "Redo setup" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redo setup"
+          }
+        }
+      }
+    },
+    "Remove Lock" : {
+
+    },
+    "Remove Passcode" : {
+
+    },
+    "Remove Photo" : {
+
+    },
+    "Remove second phrase" : {
+
+    },
+    "Remove this photo?" : {
+
+    },
+    "Rename" : {
+
+    },
+    "Rename Folder" : {
+
+    },
+    "Returns to the previous step" : {
+
+    },
+    "Retype these words to confirm." : {
+
+    },
+    "Save" : {
+
+    },
+    "Saving asks for Face ID or your device passcode." : {
+
+    },
+    "Scan Documents" : {
+
+    },
+    "Scan Text" : {
+
+    },
+    "Search" : {
+
+    },
+    "Search files" : {
+
+    },
+    "Search notes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search notes"
+          }
+        }
+      }
+    },
+    "Second phrase" : {
+
+    },
+    "Secret phrase" : {
+
+    },
+    "Select" : {
+
+    },
+    "Select a note" : {
+
+    },
+    "Select Notes" : {
+
+    },
+    "Set a second phrase" : {
+
+    },
+    "Set Passcode" : {
+
+    },
+    "Set up later" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set up later"
+          }
+        }
+      }
+    },
+    "Settings" : {
+
+    },
+    "Share" : {
+
+    },
+    "Show phrase" : {
+
+    },
+    "Skip" : {
+
+    },
+    "Skip for now" : {
+
+    },
+    "Skip Recovery Key" : {
+
+    },
+    "Skip the Recovery Key?" : {
+
+    },
+    "Skip to setup" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip to setup"
+          }
+        }
+      }
+    },
+    "Smart Folders" : {
+
+    },
+    "Sort and view" : {
+
+    },
+    "Sort By" : {
+
+    },
+    "Sort Notes By" : {
+
+    },
+    "Start using the app" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start using the app"
+          }
+        }
+      }
+    },
+    "Staying safe" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Staying safe"
+          }
+        }
+      }
+    },
+    "Step %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Step %1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "Stop recording" : {
+
+    },
+    "Strength %@" : {
+
+    },
+    "Strength: %@" : {
+
+    },
+    "Strikethrough" : {
+
+    },
+    "Subheading" : {
+
+    },
+    "Table" : {
+
+    },
+    "Tag" : {
+
+    },
+    "Tags" : {
+
+    },
+    "Tap the compose button to start a note." : {
+
+    },
+    "Test Face ID" : {
+
+    },
+    "The backup password is separate from your secret phrase. It is case-sensitive. You will need it to import. Changing Face ID can remove the biometric unlock; export a backup first. These notes do not transfer with a new phone unless you import that file." : {
+
+    },
+    "The vault locks when you leave the app. It cannot be opened from the Files app. If you forget the vault passcode and you do not have the Recovery Key, the notes, photos, and files in the vault cannot be recovered. There is no Apple ID reset." : {
+
+    },
+    "The vault stays off. You can set it up later only if you start over from a new install." : {
+
+    },
+    "These stay inside the vault. The notes list does not mention it." : {
+
+    },
+    "This cannot be undone." : {
+
+    },
+    "This device can't capture a photo." : {
+
+    },
+    "This device looks modified. Private notes are less protected on a modified device. Consider moving them with an encrypted backup and reviewing the device." : {
+
+    },
+    "This extra passcode is stored inside the vault. Use 4 to 32 characters." : {
+
+    },
+    "This folder has its own passcode." : {
+
+    },
+    "This is practice. Nothing here is saved. Type %@ and press Search." : {
+
+    },
+    "This Note is Locked" : {
+
+    },
+    "This passcode is only for the vault. It is not your iPhone passcode. If you forget it and have no Recovery Key, the vault cannot be opened." : {
+
+    },
+    "This permanently deletes the notes in this area." : {
+
+    },
+    "This phrase must be different from the one that opens these notes." : {
+
+    },
+    "Title" : {
+
+    },
+    "Today" : {
+
+    },
+    "Try a different word." : {
+
+    },
+    "Type your secret phrase in the notes search bar, then press Search. Confirm with Face ID or your vault passcode. The vault opens. A wrong phrase is a normal search, and nothing else happens." : {
+
+    },
+    "Underline" : {
+
+    },
+    "Undo" : {
+
+    },
+    "Unfavorite" : {
+
+    },
+    "Unlock" : {
+
+    },
+    "Unlock Folder" : {
+
+    },
+    "Unlock with Face ID" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock with Face ID"
+          }
+        }
+      }
+    },
+    "Unlock with Face ID. If Face ID isn't available, or you turn it off, the vault passcode is the only way in. NoteLy never asks for your iPhone passcode here." : {
+
+    },
+    "Unlock your notes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock your notes"
+          }
+        }
+      }
+    },
+    "Unpin" : {
+
+    },
+    "Use Face ID or your device passcode to view it." : {
+
+    },
+    "Use the vault passcode. This is not your iPhone passcode." : {
+
+    },
+    "Vault passcode" : {
+
+    },
+    "Version" : {
+
+    },
+    "View As" : {
+
+    },
+    "View as Gallery" : {
+
+    },
+    "View as List" : {
+
+    },
+    "View Note" : {
+
+    },
+    "View options" : {
+
+    },
+    "Viewing" : {
+
+    },
+    "Web link" : {
+
+    },
+    "What you get" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What you get"
+          }
+        }
+      }
+    },
+    "When this is on, that many failed Face ID or passcode attempts in a row permanently delete the private notes. Cancelled prompts do not count. Nothing extra is shown when it happens." : {
+
+    },
+    "With attachments" : {
+
+    },
+    "With checklists" : {
+
+    },
+    "Word %lld" : {
+
+    },
+    "Word count: %lld" : {
+
+    },
+    "Write these 24 words down and keep them offline. They are shown once. Anyone with this key can open the vault." : {
+
+    },
+    "Your note will show up here." : {
+
+    },
+    "Your notes. Your private space." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your notes. Your private space."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

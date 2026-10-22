@@ -1,0 +1,12 @@
+---
+description: Keep the NoteLy browser preview in sync with app changes
+alwaysApply: true
+---
+
+# Web preview
+
+When a change affects NoteLy screens, navigation, color, or vault behavior, update `preview/index.html` in the same turn so the local preview matches.
+
+The preview is a clickable mock. It must say it does not encrypt and is not the iOS app. Phrase checks stay in page memory only.
+
+After updating it, reload `http://127.0.0.1:8765/` if that server is running. Start `python3 -m http.server 8765` from `preview/` when it is not.

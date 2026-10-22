@@ -1,0 +1,9 @@
+{
+  "images" : [
+    {
+      "filename" : "NotesIcon.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : { "author" : "xcode", "version" : 1 }
+}
