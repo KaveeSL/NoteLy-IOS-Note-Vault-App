@@ -6,6 +6,18 @@ import SwiftData
 import SwiftUI
 import UIKit
 
+enum IdentityCheck {
+    case allowed
+    case cancelled
+    case needCode
+}
+
+enum UnlockCodeAvailability {
+    case ready
+    case missing
+    case coolingDown
+}
+
 /// Owns vault visibility, the in-memory key, and reactions to scene phase.
 /// Public notes do not live here; SwiftData owns those.
 @MainActor
@@ -648,6 +660,44 @@ final class AppState: ObservableObject {
         showPasscode = false
         pendingKey = nil
         passcodeMessage = ""
+    }
+
+    /// Face ID only. A cancel stops. Anything else means the 6-digit code should be used.
+    func confirmWithFaceID() async -> IdentityCheck {
+        guard biometric.biometricsAvailable() else { return .needCode }
+        isAuthenticating = true
+        updateShield()
+        let outcome = await biometric.authenticateBiometrics(reason: UnlockPrompt.reason)
+        isAuthenticating = false
+        updateShield()
+        switch outcome {
+        case .success:
+            return .allowed
+        case .cancelled:
+            return .cancelled
+        default:
+            return .needCode
+        }
+    }
+
+    func unlockCodeAvailability() -> UnlockCodeAvailability {
+        if !passcodes.isConfigured() { return .missing }
+        if attemptLimiter.isCoolingDown() { return .coolingDown }
+        return .ready
+    }
+
+    /// Checks the 6-digit code without opening the hidden space.
+    func unlockCodeMatches(_ code: String) -> Bool {
+        guard passcodes.isConfigured(), !attemptLimiter.isCoolingDown() else { return false }
+        do {
+            _ = try passcodes.unlock(passcode: code)
+            attemptLimiter.reset()
+            return true
+        } catch {
+            attemptLimiter.recordFailure()
+            considerPanicWipe()
+            return false
+        }
     }
 
     func setFaceIDEnabled(_ enabled: Bool) async {

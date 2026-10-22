@@ -142,6 +142,27 @@ final class SettingsViewModel: ObservableObject {
         return nil
     }
 
+    /// Replaces the search phrase. The caller has already confirmed Face ID or the 6-digit code.
+    func replacePhrase(newPhrase: String, confirmation: String) async -> String? {
+        if case .invalid(let reason) = PhraseValidator.validate(newPhrase) {
+            return reason
+        }
+        let normalizedNew = SecretPhraseService.normalize(newPhrase)
+        let normalizedConfirm = SecretPhraseService.normalize(confirmation)
+        if normalizedNew != normalizedConfirm {
+            return "Those phrases don't match."
+        }
+        isWorking = true
+        defer { isWorking = false }
+        do {
+            try await phrases.setVaultPhrase(newPhrase)
+            statusMessage = "Phrase updated."
+            return nil
+        } catch {
+            return message(for: error) ?? "That phrase couldn't be saved."
+        }
+    }
+
     /// Replaces the phrase after Face ID or the device passcode. The previous phrase is not asked
     /// again, because this screen is already behind that confirmation.
     func changePhrase(newPhrase: String, confirmation: String, decoy: Bool) async -> String? {

@@ -152,6 +152,11 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   }
   .setup-mark { font-size: 26px; margin: 4px 0 6px; text-align: left; }
+  .why { margin: 0; color: var(--secondary); font-size: 15px; line-height: 1.35; }
+  .hints { display: flex; flex-direction: column; gap: 10px; }
+  .hint { display: flex; gap: 12px; align-items: flex-start; color: var(--secondary); font-size: 15px; line-height: 1.35; }
+  .hint b { width: 22px; flex: none; text-align: center; color: var(--accent); font-weight: 650; }
+  .code-hints { width: min(100%, 320px); margin: 16px auto 0; text-align: left; }
   .show-row { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding-right: 4px; font-size: 17px; }
   .show-row i { width: 51px; height: 31px; border-radius: 16px; background: var(--fill); display: block; position: relative; }
   .show-row i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
@@ -170,11 +175,12 @@
     mask-image: linear-gradient(to bottom, #000 0%, #000 74%, rgba(0,0,0,0.82) 84%, rgba(0,0,0,0.4) 92%, transparent 100%);
   }
   .splash-copy { padding: 8px 28px 8px; background: var(--bg); position: relative; z-index: 1; }
-  .splash-brand { display: flex; align-items: center; gap: 6px; font-size: 20px; font-weight: 700; }
-  .splash-brand span { font-size: 18px; }
+  .splash-brand { display: flex; align-items: center; gap: 5px; font-size: 17px; font-weight: 600; }
+  .splash-brand .apple { font-family: -apple-system, system-ui; font-size: 22px; font-weight: 600; line-height: 1; }
   .splash-copy h1 { margin: 2px 0 0; font-size: 34px; letter-spacing: -0.7px; line-height: 1.05; }
-  .splash-symbol { font-size: 26px; margin: 20px 0 12px; }
+  .splash-symbol { font-size: 26px; margin: 20px 18px 12px; }
   .splash-copy p { margin: 0; font-size: 15px; line-height: 1.35; color: var(--secondary); }
+  .splash-copy p.welcome-desc { margin: 0 18px; }
   .splash-copy p.splash-link { color: var(--accent); margin-top: 6px; }
   .glass-field {
     width: 100%; border: 0; border-radius: 18px; padding: 14px 16px; font: inherit; font-size: 17px;
@@ -189,9 +195,19 @@
   .pad { padding: 8px 28px 16px; display: flex; flex-direction: column; gap: 12px; }
   .pad.welcome { gap: 22px; padding-top: 8px; }
   h1.page { margin: 0; font-size: 34px; letter-spacing: -0.7px; }
+  h1.phrase-title { display: flex; align-items: center; gap: 10px; }
+  h1.phrase-title .phrase-mark { font-size: 28px; line-height: 1; color: var(--accent); }
   .muted, .fine { color: var(--secondary); margin: 0; }
   .muted { font-size: 17px; line-height: 1.35; }
   .fine { font-size: 13px; line-height: 1.4; }
+  .set-card { background: var(--card); border-radius: 12px; overflow: hidden; margin-top: 18px; }
+  .set-row { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px 16px; border: 0; background: transparent; color: inherit; font: inherit; font-size: 17px; text-align: left; cursor: pointer; }
+  .set-row span { color: var(--secondary); }
+  .set-version { display: flex; align-items: center; }
+  .set-version .set-row { flex: 1; width: auto; }
+  .info-btn { width: 20px; height: 20px; margin-right: 12px; padding: 0; border: 1.5px solid var(--secondary); border-radius: 50%; background: transparent; color: var(--secondary); font: inherit; font-size: 12px; font-weight: 650; line-height: 1; cursor: pointer; flex: none; }
+  .version-hint { margin: 8px 16px 0; }
+  .set-label { margin: 22px 16px 6px; font-size: 13px; color: var(--secondary); }
   label.field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 650; }
   input[type="password"], input.title, textarea.body, .field input, .rename {
     width: 100%; border: 0; background: var(--card); color: var(--text); border-radius: 12px; padding: 12px; font: inherit;
@@ -224,24 +240,23 @@
   }
   .footer-btn { flex: none; padding: 12px 32px 10px; display: flex; flex-direction: column; gap: 2px; background: var(--bg); }
   .footer-btn.welcome-foot { padding-left: 32px; padding-right: 32px; }
-  .primary.welcome-btn { min-height: 68px; border-radius: 34px; font-size: 17px; }
+  .primary.welcome-btn { min-height: 68px; border-radius: 34px; font-size: 17px; color: #fff; }
+  .footer-btn .primary.welcome-btn {
+    color: #fff;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0.08) 38%, rgba(0,0,0,0.08)),
+      color-mix(in srgb, #f0b000 82%, white);
+  }
   .footer-btn .primary {
-    background: rgba(255, 255, 255, 0.42);
+    background: color-mix(in srgb, #e0a000 68%, rgba(255, 255, 255, 0.55));
     color: #1c1c1e;
     backdrop-filter: blur(22px) saturate(1.8);
     -webkit-backdrop-filter: blur(22px) saturate(1.8);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -0.5px 0 rgba(0, 0, 0, 0.05);
-    border: 0.5px solid rgba(255, 255, 255, 0.7);
-  }
-  .footer-btn .primary.welcome-btn {
-    background: color-mix(in srgb, #e0a000 68%, rgba(255, 255, 255, 0.55));
-    color: #1c1c1e;
-    border-color: rgba(255, 220, 90, 0.9);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), inset 0 -1px 0 rgba(160, 96, 0, 0.28);
+    border: 0.5px solid rgba(255, 220, 90, 0.9);
   }
   @media (prefers-color-scheme: dark) {
-    .footer-btn .primary { background: rgba(255, 255, 255, 0.14); color: #f2f2f7; border-color: rgba(255, 255, 255, 0.2); }
-    .footer-btn .primary.welcome-btn { background: color-mix(in srgb, #f0b000 62%, rgba(255, 255, 255, 0.16)); color: #1c1c1e; }
+    .footer-btn .primary { background: color-mix(in srgb, #f0b000 62%, rgba(255, 255, 255, 0.16)); color: #1c1c1e; }
   }
   .sheet { position: absolute; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: flex-end; z-index: 5; }
   .sheet-card { width: 100%; background: var(--card); border-radius: 22px 22px 0 0; padding: 18px 18px 28px; }
@@ -316,7 +331,17 @@ const state = {
   fileGallery: true,
   redirecting: false,
   locking: false,
-  nextId: 4
+  nextId: 4,
+  versionTaps: 0,
+  versionTapAt: 0,
+  settingsStep: "",
+  settingsCode: "",
+  settingsPhrase: "",
+  settingsConfirm: "",
+  settingsMessage: "",
+  settingsNotice: "",
+  versionHint: false,
+  versionHintTimer: 0
 };
 
 const weak = new Set(["password", "password1", "unlock", "12345678", "qwerty", "qwertyui", "letmein", "welcome", "work", "todo", "shopping", "notes", "meeting", "ideas", "grocery"]);
@@ -369,6 +394,9 @@ function render() {
   }[state.screen]();
   root.append(view);
   if (state.face) root.append(faceSheet());
+  if (state.screen === "settings" && (state.settingsStep === "code" || state.settingsStep === "phrase")) {
+    root.append(phraseChangeSheet());
+  }
 }
 
 function column(title, leading, trailing) {
@@ -389,14 +417,24 @@ function onboard() {
   if (state.page === 0) {
     const hero = el("div", "splash-hero");
     const copy = el("div", "splash-copy");
+    const brand = el("div", "splash-brand");
+    brand.append(el("span", "apple", "\uF8FF"));
+    brand.append(document.createTextNode("Creator Studio"));
+    copy.append(brand);
     copy.append(el("h1", "", "Welcome to NoteLy"));
     copy.append(el("div", "splash-symbol", "📁"));
-    copy.append(el("p", "", "Notes stay on this iPhone. Search a secret phrase to open a hidden space, then set a code. Face ID is optional."));
+    copy.append(el("p", "welcome-desc", "Keep your notes on this iPhone. A secret phrase opens a hidden space, then you set a code. Face ID is optional."));
     box.append(hero, copy);
   } else if (state.page === 1) {
-    box.append(el("div", "setup-mark", "🔍"));
-    box.append(el("h1", "page", "Your phrase"));
-    box.append(el("p", "muted", "You'll type this in Search later. Pick something you would never search for a note."));
+    const phraseTitle = el("h1", "page phrase-title");
+    phraseTitle.append(el("span", "phrase-mark", "🔍"));
+    phraseTitle.append(document.createTextNode("Your phrase"));
+    box.append(phraseTitle);
+    box.append(el("p", "why", "This opens a hidden space. There is no button for it."));
+    const phraseHints = el("div", "hints");
+    phraseHints.append(hint("🔍", "Type it in Search when you want to open it."));
+    phraseHints.append(hint("🙈", "Pick words you would never use for a note."));
+    box.append(phraseHints);
     box.append(field("Phrase", "phrase"));
     box.append(field("Type it again", "confirm"));
     const show = el("div", "show-row");
@@ -414,7 +452,14 @@ function onboard() {
     const head = el("div", "code-head");
     head.append(el("div", "code-lock", "🔒"));
     head.append(el("h1", "", state.pinConfirming ? "Type it again" : "Choose a 6-digit code"));
-    head.append(el("p", "", state.pinConfirming ? "Enter the same six digits to confirm." : "Type six digits for the hidden space. You'll enter them once more to confirm."));
+    if (state.pinConfirming) {
+      head.append(el("p", "", "Enter the same six digits to confirm."));
+    } else {
+      const codeHints = el("div", "hints code-hints");
+      codeHints.append(hint("🔒", "Locks the hidden space after your phrase opens it."));
+      codeHints.append(hint("✓", "You'll type these six digits once more."));
+      head.append(codeHints);
+    }
     box.append(head);
     const dots = el("div", "code-dots");
     const current = state.pinConfirming ? state.pinAgain : state.pin;
@@ -484,6 +529,12 @@ function advanceSetup(box) {
   render();
 }
 
+function hint(symbol, text) {
+  const row = el("div", "hint");
+  row.append(el("b", "", symbol));
+  row.append(el("span", "", text));
+  return row;
+}
 function field(label, name) {
   const wrap = el("label", "field", label);
   const input = document.createElement("input");
@@ -821,10 +872,114 @@ function vaultSettings() {
 function settings() {
   const { screen, body } = column("Settings", button("Folders", "text-btn", () => { state.screen = "folders"; render(); }), el("span"));
   const box = el("div", "pad");
-  box.append(el("p", "muted", "On My iPhone is the only account. Sort, group by date, and lines or grids follow the notes list."));
-  box.append(el("p", "fine", "Notes stay on this device. This preview does not store them."));
+  box.append(el("p", "set-label", "ACCOUNTS"));
+  const account = el("div", "set-card");
+  const onPhone = el("div", "set-row");
+  onPhone.append(el("strong", "", "On My iPhone"), el("span", "", "On"));
+  account.append(onPhone);
+  box.append(account);
+  box.append(el("p", "fine", "Notes stay on this iPhone. This preview does not store them."));
+  box.append(el("p", "set-label", ""));
+  const versionCard = el("div", "set-card");
+  const version = button("", "set-row", () => {
+    const now = Date.now();
+    if (state.versionTapAt && now - state.versionTapAt > 4000) state.versionTaps = 0;
+    state.versionTapAt = now;
+    state.versionTaps += 1;
+    if (state.versionTaps >= 10) {
+      state.versionTaps = 0;
+      state.settingsStep = "code";
+      state.settingsCode = "";
+      state.settingsMessage = "";
+      state.settingsPhrase = "";
+      state.settingsConfirm = "";
+    }
+    render();
+  });
+  version.setAttribute("aria-label", "Version");
+  version.append(el("strong", "", "Version"), el("span", "", "1.0"));
+  const info = button("i", "info-btn", () => {
+    state.versionHint = true;
+    state.versionHintTimer += 1;
+    const token = state.versionHintTimer;
+    render();
+    setTimeout(() => {
+      if (state.versionHintTimer !== token) return;
+      state.versionHint = false;
+      if (state.screen === "settings") render();
+    }, 5000);
+  });
+  info.setAttribute("aria-label", "Version info");
+  const versionLine = el("div", "set-version");
+  versionLine.append(version, info);
+  versionCard.append(versionLine);
+  box.append(versionCard);
+  if (state.versionHint) box.append(el("p", "fine version-hint", "Tap Version 10 times to change the phrase."));
+  box.append(el("p", "fine", "NoteLy keeps your notes on this device and does not send note contents anywhere."));
+  if (state.settingsNotice) box.append(el("p", "fine", state.settingsNotice));
   body.append(box);
   return screen;
+}
+
+function phraseChangeSheet() {
+  const sheet = el("div", "sheet");
+  const card = el("div", "sheet-card");
+  if (state.settingsStep === "code") {
+    card.append(el("h2", "", "Enter Code"));
+    card.append(el("p", "fine", "This preview can't use Face ID and does not check a real code. Enter any 6 digits."));
+    const dots = el("div", "code-dots");
+    for (let i = 0; i < 6; i++) dots.append(el("i", i < state.settingsCode.length ? "on" : ""));
+    card.append(dots);
+    const pad = el("div", "pinpad");
+    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "⌫"].forEach((label) => {
+      pad.append(button(label, "pin", () => {
+        if (label === "C") state.settingsCode = "";
+        else if (label === "⌫") state.settingsCode = state.settingsCode.slice(0, -1);
+        else if (state.settingsCode.length < 6) state.settingsCode += label;
+        if (state.settingsCode.length === 6) {
+          state.settingsStep = "phrase";
+          state.settingsCode = "";
+        }
+        render();
+      }));
+    });
+    card.append(pad);
+  } else {
+    card.append(el("h2", "", "New phrase"));
+    card.append(el("p", "fine", "Type the new phrase in Search later. This preview keeps it in page memory only."));
+    const first = el("input", "glass-field");
+    first.placeholder = "New phrase";
+    first.value = state.settingsPhrase;
+    first.oninput = () => { state.settingsPhrase = first.value; };
+    const second = el("input", "glass-field");
+    second.placeholder = "Type it again";
+    second.value = state.settingsConfirm;
+    second.style.marginTop = "10px";
+    second.oninput = () => { state.settingsConfirm = second.value; };
+    card.append(first, second);
+    if (state.settingsMessage) card.append(el("p", "error", state.settingsMessage));
+    card.append(button("Save", "primary", () => {
+      const phrase = normalize(state.settingsPhrase);
+      const error = phraseError(phrase);
+      if (error) { state.settingsMessage = error; render(); return; }
+      if (phrase !== normalize(state.settingsConfirm)) { state.settingsMessage = "Those phrases don't match."; render(); return; }
+      state.phrase = phrase;
+      state.settingsStep = "";
+      state.settingsPhrase = "";
+      state.settingsConfirm = "";
+      state.settingsMessage = "";
+      state.settingsNotice = "Phrase updated. Search will use the new one. This preview does not encrypt it.";
+      render();
+    }));
+  }
+  card.append(button("Cancel", "secondary-btn", () => {
+    state.settingsStep = "";
+    state.settingsCode = "";
+    state.settingsMessage = "";
+    render();
+  }));
+  sheet.append(card);
+  return sheet;
 }
 
 function showRedirect() {

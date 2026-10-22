@@ -95,10 +95,11 @@ struct GuidedOnboardingView: View {
             } label: {
                 Text(continueTitle)
                     .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(current == .welcome ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: current == .welcome ? 52 : nil)
             }
-            .modifier(WelcomeGlass(yellow: current == .welcome))
+            .prominentGlassButton()
             .buttonBorderShape(.capsule)
             .controlSize(current == .welcome ? .extraLarge : .large)
             .frame(maxWidth: .infinity)
@@ -223,20 +224,32 @@ struct GuidedOnboardingView: View {
         VStack(alignment: .leading, spacing: 0) {
             welcomeHero
             VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 5) {
+                    Image(systemName: "apple.logo")
+                        .font(.system(size: 22, weight: .semibold))
+                        .accessibilityHidden(true)
+                    Text("Creator Studio")
+                        .font(.system(size: 17, weight: .semibold))
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Creator Studio")
                 Text("Welcome to NoteLy")
                     .font(.system(size: 34, weight: .bold))
+                    .padding(.top, 4)
                     .accessibilityAddTraits(.isHeader)
-                Image(systemName: "folder.fill")
-                    .font(.system(size: 26))
-                    .foregroundStyle(Theme.accent)
-                    .padding(.top, 20)
-                    .accessibilityHidden(true)
-                Text("Notes stay on this iPhone. Search a secret phrase to open a hidden space, then set a code. Face ID is optional.")
-                    .font(.system(size: 15))
-                    .foregroundStyle(.secondary)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 12)
+                VStack(alignment: .leading, spacing: 12) {
+                    Image(systemName: "folder.fill")
+                        .font(.system(size: 26))
+                        .foregroundStyle(Theme.accent)
+                        .accessibilityHidden(true)
+                    Text("Keep your notes on this iPhone. A secret phrase opens a hidden space, then you set a code. Face ID is optional.")
+                        .font(.system(size: 15))
+                        .foregroundStyle(.secondary)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 20)
+                .padding(.horizontal, 18)
             }
             .padding(.horizontal, 28)
             .padding(.top, 8)
@@ -272,14 +285,23 @@ struct GuidedOnboardingView: View {
 
     private var phraseStep: some View {
         VStack(alignment: .leading, spacing: 16) {
-            setupMark("magnifyingglass")
-            Text("Your phrase")
-                .font(.system(size: 34, weight: .bold))
-                .accessibilityAddTraits(.isHeader)
-            Text("You'll type this in Search later. Pick something you would never search for a note.")
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(Theme.accent)
+                    .accessibilityHidden(true)
+                Text("Your phrase")
+                    .font(.system(size: 34, weight: .bold))
+                    .accessibilityAddTraits(.isHeader)
+            }
+            Text("This opens a hidden space. There is no button for it.")
                 .font(.system(size: 15))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 10) {
+                hintRow("magnifyingglass", "Type it in Search when you want to open it.")
+                hintRow("eye.slash", "Pick words you would never use for a note.")
+            }
             phraseField("Phrase", text: $phrase, identifier: "onboarding.phrase")
             phraseField("Type it again", text: $phraseConfirm, identifier: "onboarding.phraseConfirm")
             Toggle("Show phrase", isOn: $showPhrase)
@@ -294,6 +316,20 @@ struct GuidedOnboardingView: View {
             }
         }
         .privacySensitive()
+    }
+
+    private func hintRow(_ symbol: String, _ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 22, alignment: .center)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(.system(size: 15))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private func setupMark(_ symbol: String) -> some View {
@@ -345,14 +381,21 @@ struct GuidedOnboardingView: View {
                 .multilineTextAlignment(.center)
                 .padding(.top, 28)
                 .accessibilityAddTraits(.isHeader)
-            Text(editingConfirm
-                 ? "Enter the same six digits to confirm."
-                 : "Type six digits for the hidden space. You'll enter them once more to confirm.")
-                .font(.system(size: 15))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.top, 8)
-                .padding(.horizontal, 8)
+            if editingConfirm {
+                Text("Enter the same six digits to confirm.")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 8)
+                    .padding(.horizontal, 8)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    hintRow("lock", "Locks the hidden space after your phrase opens it.")
+                    hintRow("checkmark", "You'll type these six digits once more.")
+                }
+                .frame(maxWidth: 320)
+                .padding(.top, 16)
+            }
             HStack(spacing: 18) {
                 ForEach(0..<6, id: \.self) { mark in
                     Circle()
@@ -499,19 +542,6 @@ struct GuidedOnboardingView: View {
         .frame(minHeight: 52)
         .notesGlass(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityIdentifier(identifier)
-    }
-}
-
-/// Yellow liquid glass on the welcome button. Later setup buttons stay clear glass.
-private struct WelcomeGlass: ViewModifier {
-    var yellow: Bool
-
-    func body(content: Content) -> some View {
-        if yellow {
-            content.prominentGlassButton()
-        } else {
-            content.secondaryGlassButton()
-        }
     }
 }
 
