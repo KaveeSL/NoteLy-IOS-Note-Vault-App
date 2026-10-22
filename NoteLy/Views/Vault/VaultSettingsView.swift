@@ -1,6 +1,11 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+private enum SettingsGate {
+    case phrase
+    case passcode
+}
+
 struct VaultSettingsView: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject var settings: SettingsViewModel
@@ -30,8 +35,51 @@ struct VaultSettingsView: View {
     @State private var redoingSetup = false
     @State private var showingWelcome = false
     @State private var confirmStartOver = false
+    @State private var showCodeGate = false
+    @State private var gateCode = ""
+    @State private var gateAction: SettingsGate?
+    @State private var codeMismatch = false
 
     private var isDecoy: Bool { appState.isDecoySession }
+
+    private func authorize(phrase: Bool) {
+        Task {
+            if appState.faceIDEnabled, appState.biometric.biometricsAvailable() {
+                switch await appState.confirmWithFaceID() {
+                case .allowed:
+                    if phrase { showingPhraseChange = true } else { showingPasscode = true }
+                case .cancelled:
+                    break
+                case .needCode:
+                    gateAction = phrase ? .phrase : .passcode
+                    gateCode = ""
+                    showCodeGate = true
+                }
+            } else {
+                gateAction = phrase ? .phrase : .passcode
+                gateCode = ""
+                showCodeGate = true
+            }
+        }
+    }
+
+    private func finishCodeGate() {
+        let entered = gateCode
+        gateCode = ""
+        guard appState.unlockCodeMatches(entered) else {
+            codeMismatch = true
+            return
+        }
+        switch gateAction {
+        case .phrase:
+            showingPhraseChange = true
+        case .passcode:
+            showingPasscode = true
+        case nil:
+            break
+        }
+        gateAction = nil
+    }
 
     private func startOver() async {
         let problem = await appState.startFresh(notes: modelContext)
@@ -127,20 +175,18 @@ struct VaultSettingsView: View {
                     set: { enabled in Task { await appState.setFaceIDEnabled(enabled) } }
                 ))
                 Button("Change passcode") {
-                    Task {
-                        if await appState.reauth.authorize(.changePasscode) != nil {
-                            showingPasscode = true
-                        }
-                    }
+                    authorize(phrase: false)
                 }
             } footer: {
                 Text("Face ID opens this space. You can change the 6-digit code here.")
             }
 
             Section {
-                Button("Change phrase") { showingPhraseChange = true }
+                Button("Change phrase") {
+                    authorize(phrase: true)
+                }
             } footer: {
-                Text("Face ID or your device passcode confirms the change. The notes stay encrypted with the same key. If you forget the new phrase, there is no recovery.")
+                Text("Face ID confirms the change when it is on. Otherwise you enter the 6-digit code. If you forget the new phrase, there is no recovery.")
             }
 
             if !isDecoy {
@@ -227,20 +273,40 @@ struct VaultSettingsView: View {
                 }
             }
 
-            if let status = settings.statusMessage {
-                Section {
-                    Text(status)
-                        .font(.subheadline)
-                }
+            Section {
+                LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")
+            }
+
+            Section {
+                Text("© 2026 DK Technologies Inc.")
+                    .font(.footnote)
+                    .foregroundStyle(Color(.tertiaryLabel))
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             }
         }
-        .confirmationDialog("Use the app as new?", isPresented: $confirmStartOver, titleVisibility: .visible) {
+        .alert("Clear all data?", isPresented: $confirmStartOver) {
             Button("Clear all data", role: .destructive) {
                 Task { await startOver() }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This deletes every note and the hidden space. Face ID confirms it. This cannot be undone.")
+        }
+        .alert("Enter your code", isPresented: $showCodeGate) {
+            SecureField("6-digit code", text: $gateCode)
+            Button("Continue") { finishCodeGate() }
+            Button("Cancel", role: .cancel) {
+                gateCode = ""
+                gateAction = nil
+            }
+        } message: {
+            Text("Face ID is off, so enter the 6-digit code.")
+        }
+        .alert("That code doesn't match.", isPresented: $codeMismatch) {
+            Button("OK") {}
         }
         .sheet(isPresented: $showingWelcome) {
             GuidedOnboardingView(mode: .replay)

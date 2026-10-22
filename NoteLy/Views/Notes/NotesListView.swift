@@ -25,6 +25,11 @@ struct NotesListView: View {
     @State private var folderToMove: NoteFolder?
     @State private var shareText: String?
     @State private var editingFolders = false
+    @State private var pendingDelete: Note?
+    @State private var pendingErase: Note?
+    @State private var pendingFolder: NoteFolder?
+    @State private var showSettings = false
+    @State private var lockRemovalID: UUID?
 
     var body: some View {
         Group {
@@ -66,6 +71,45 @@ struct NotesListView: View {
             #if DEBUG
             appState.seedUITestNotesIfNeeded(context: modelContext, existingCount: notes.count)
             #endif
+        }
+        .alert("Delete this note?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })) {
+            Button("Delete", role: .destructive) {
+                if let pendingDelete { softDelete(pendingDelete) }
+                pendingDelete = nil
+            }
+            Button("Cancel", role: .cancel) { pendingDelete = nil }
+        } message: {
+            Text("It moves to Recently Deleted. You can restore it from there.")
+        }
+        .alert("Delete this note permanently?", isPresented: Binding(get: { pendingErase != nil }, set: { if !$0 { pendingErase = nil } })) {
+            Button("Delete", role: .destructive) {
+                if let pendingErase { erase(pendingErase) }
+                pendingErase = nil
+            }
+            Button("Cancel", role: .cancel) { pendingErase = nil }
+        } message: {
+            Text("This cannot be undone.")
+        }
+        .onChange(of: lockRemovalID) { _, id in
+            guard let id else { return }
+            Task {
+                let outcome = await appState.biometric.authenticate(reason: UnlockPrompt.reason)
+                if case .success = outcome {
+                    NoteLocks.set(id, locked: false)
+                    viewModel.lockRevision += 1
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                }
+                lockRemovalID = nil
+            }
+        }
+        .alert("Delete this folder?", isPresented: Binding(get: { pendingFolder != nil }, set: { if !$0 { pendingFolder = nil } })) {
+            Button("Delete", role: .destructive) {
+                if let pendingFolder { deleteFolder(pendingFolder) }
+                pendingFolder = nil
+            }
+            Button("Cancel", role: .cancel) { pendingFolder = nil }
+        } message: {
+            Text("Notes in this folder move back to Notes.")
         }
     }
 
@@ -120,11 +164,12 @@ struct NotesListView: View {
         .listStyle(.insetGrouped)
         .modifier(FolderEditMode(editing: editingFolders))
         .navigationTitle("Folders")
+        .navigationDestination(isPresented: $showSettings) {
+            NotesSettingsView(viewModel: viewModel)
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                NavigationLink {
-                    NotesSettingsView(viewModel: viewModel)
-                } label: {
+                Button { showSettings = true } label: {
                     Image(systemName: "gearshape")
                 }
                 .accessibilityLabel("Settings")
@@ -246,13 +291,13 @@ struct NotesListView: View {
                 folderLabel(folder, count: count)
             }
             .buttonStyle(.plain)
-            .folderSlideActions(folder: folder, share: { shareFolder(folder) }, move: { folderToMove = folder }, delete: { deleteFolder(folder) })
+            .folderSlideActions(folder: folder, share: { shareFolder(folder) }, move: { folderToMove = folder }, delete: { pendingFolder = folder })
             .contextMenu { folderMenu(folder) }
         } else {
             NavigationLink(value: folder.id) {
                 folderLabel(folder, count: count)
             }
-            .folderSlideActions(folder: folder, share: { shareFolder(folder) }, move: { folderToMove = folder }, delete: { deleteFolder(folder) })
+            .folderSlideActions(folder: folder, share: { shareFolder(folder) }, move: { folderToMove = folder }, delete: { pendingFolder = folder })
             .contextMenu { folderMenu(folder) }
         }
     }
@@ -260,15 +305,19 @@ struct NotesListView: View {
     @ViewBuilder
     private func folderMenu(_ folder: NoteFolder) -> some View {
         if folder.kind != .deleted {
-            Button("Share") { shareFolder(folder) }
-            Button("Move") { folderToMove = folder }
+            Button { shareFolder(folder) } label: { Label("Share", systemImage: "square.and.arrow.up") }
+            Button { folderToMove = folder } label: { Label("Move", systemImage: "folder") }
         }
         if !folder.isSystem {
-            Button("Rename") {
+            Button {
                 renameText = folder.name
                 renameTarget = folder
+            } label: {
+                Label("Rename", systemImage: "pencil")
             }
-            Button("Delete", role: .destructive) { deleteFolder(folder) }
+            Button(role: .destructive) { pendingFolder = folder } label: {
+                Label("Delete", systemImage: "trash")
+            }
         }
     }
 
@@ -326,6 +375,7 @@ struct NotesListView: View {
         hashTag: String? = nil,
         allFolders: Bool = false
     ) -> some View {
+        let _ = viewModel.lockRevision
         let groups = viewModel.grouped(from: notes, folder: folder, hashTag: hashTag, smart: smart, allFolders: allFolders)
         let visible = groups.flatMap(\.notes)
         let title = smart?.name ?? hashTag.map { "#\($0)" } ?? folder?.name ?? "Notes"
@@ -432,14 +482,29 @@ struct NotesListView: View {
                 NoteRowView(note: note, query: viewModel.debouncedQuery, locked: isLocked(note))
             }
             .buttonStyle(.plain)
-            .swipeActions(edge: .trailing) {
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                 if folder?.kind == .deleted {
-                    Button("Recover") { recover(note) }.tint(Theme.accent)
-                    Button("Delete", role: .destructive) { erase(note) }
+                    Button { pendingErase = note } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .tint(Color(red: 1, green: 0.231, blue: 0.188))
+                    Button { recover(note) } label: {
+                        Label("Restore", systemImage: "arrow.uturn.backward")
+                    }
+                    .tint(Theme.accent)
                 } else {
-                    Button("Delete", role: .destructive) { softDelete(note) }
-                    Button("Lock") { toggleLock(note) }.tint(.orange)
-                    Button("Move") { moveNote = note }.tint(.gray)
+                    Button { pendingDelete = note } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .tint(Color(red: 1, green: 0.231, blue: 0.188))
+                    Button { toggleLock(note) } label: {
+                        Label(NoteLocks.contains(note.id) ? "Unlock" : "Lock", systemImage: NoteLocks.contains(note.id) ? "lock.open" : "lock")
+                    }
+                    .tint(.orange)
+                    Button { moveNote = note } label: {
+                        Label("Move", systemImage: "folder")
+                    }
+                    .tint(Color(red: 0.486, green: 0.361, blue: 0.988))
                 }
             }
             .swipeActions(edge: .leading) {
@@ -447,9 +512,9 @@ struct NotesListView: View {
                     Button {
                         togglePin(note)
                     } label: {
-                        Label(note.isPinned ? "Unpin" : "Pin", systemImage: "pin")
+                        Label(note.isPinned ? "Unpin" : "Pin", systemImage: note.isPinned ? "pin.slash" : "pin")
                     }
-                    .tint(Theme.accent)
+                    .tint(note.isPinned ? Color(.systemGray) : Theme.accent)
                 }
             }
             .contextMenu { rowMenu(note, folder: folder) }
@@ -467,14 +532,17 @@ struct NotesListView: View {
     @ViewBuilder
     private func rowMenu(_ note: Note, folder: NoteFolder?) -> some View {
         if folder?.kind == .deleted {
-            Button("Recover") { recover(note) }
-            Button("Delete", role: .destructive) { erase(note) }
+            Button { recover(note) } label: { Label("Restore", systemImage: "arrow.uturn.backward") }
+            Button(role: .destructive) { pendingErase = note } label: { Label("Delete", systemImage: "trash") }
         } else {
-            Button(note.isPinned ? "Unpin" : "Pin") { togglePin(note) }
-            Button(NoteLocks.contains(note.id) ? "Unlock" : "Lock") { toggleLock(note) }
-            Button("Move") { moveNote = note }
-            Button("Duplicate") { duplicate(note) }
-            Button("Delete", role: .destructive) { softDelete(note) }
+            Button { togglePin(note) } label: {
+                Label(note.isPinned ? "Unpin" : "Pin", systemImage: note.isPinned ? "pin.slash" : "pin")
+            }
+            .tint(note.isPinned ? Color(.systemGray) : Theme.accent)
+            Button { toggleLock(note) } label: { Label(NoteLocks.contains(note.id) ? "Unlock" : "Lock", systemImage: NoteLocks.contains(note.id) ? "lock.open" : "lock") }
+            Button { moveNote = note } label: { Label("Move", systemImage: "folder") }
+            Button { duplicate(note) } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
+            Button(role: .destructive) { pendingDelete = note } label: { Label("Delete", systemImage: "trash") }
         }
     }
 
@@ -490,25 +558,33 @@ struct NotesListView: View {
             }
             .accessibilityLabel(viewModel.layout == .list ? "View as Gallery" : "View as List")
             Menu {
-                Button(viewModel.layout == .list ? "View as Gallery" : "View as List") {
+                Button {
                     withAnimation(.smooth(duration: 0.35)) {
                         viewModel.layout = viewModel.layout == .list ? .gallery : .list
                     }
+                } label: {
+                    Label(viewModel.layout == .list ? "View as Gallery" : "View as List", systemImage: viewModel.layout == .list ? "square.grid.2x2" : "list.bullet")
                 }
-                Button(viewModel.isSelecting ? "Done Selecting" : "Select Notes") {
+                Button {
                     viewModel.isSelecting.toggle()
                     if !viewModel.isSelecting { viewModel.selection.removeAll() }
+                } label: {
+                    Label(viewModel.isSelecting ? "Done Selecting" : "Select Notes", systemImage: "checkmark.circle")
                 }
-                Menu("Sort By") {
+                Menu {
                     Picker("Sort By", selection: $viewModel.sort) {
                         ForEach(NoteSort.allCases) { sort in
                             Text(sort.rawValue).tag(sort)
                         }
                     }
+                } label: {
+                    Label("Sort By", systemImage: "arrow.up.arrow.down")
                 }
                 Toggle("Group By Date", isOn: $viewModel.groupByDate)
                 if folder?.kind == .deleted {
-                    Button("Delete All", role: .destructive) { eraseAllDeleted() }
+                    Button(role: .destructive) { eraseAllDeleted() } label: {
+                        Label("Delete All", systemImage: "trash")
+                    }
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
@@ -603,9 +679,13 @@ struct NotesListView: View {
     }
 
     private func toggleLock(_ note: Note) {
-        NoteLocks.set(note.id, locked: !NoteLocks.contains(note.id))
-        viewModel.lockRevision += 1
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        if NoteLocks.contains(note.id) {
+            lockRemovalID = note.id
+        } else {
+            NoteLocks.set(note.id, locked: true)
+            viewModel.lockRevision += 1
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        }
     }
 
     private func deleteFolders(at offsets: IndexSet) {
@@ -770,6 +850,39 @@ private struct ActivityShare: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
+/// The Notes search pill and the round compose button beside it.
+struct NotesStyleSearchBar: View {
+    @Binding var text: String
+    var prompt: String
+    var onCompose: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 17, weight: .medium))
+                TextField(prompt, text: $text)
+                Image(systemName: "mic")
+                    .font(.system(size: 17))
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 52)
+            .background(Color(.systemBackground), in: Capsule())
+            .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
+            Button(action: onCompose) {
+                Image(systemName: "square.and.pencil")
+                    .font(.system(size: 20))
+                    .frame(width: 52, height: 52)
+                    .background(Color(.systemBackground), in: Circle())
+                    .overlay(Circle().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("New note")
+        }
+    }
+}
+
 /// Search capsule on the left, circular compose button on the right. The note count stays in the list.
 private struct NotesBottomBar: View {
     @ObservedObject var viewModel: NotesListViewModel
@@ -788,9 +901,10 @@ private struct NotesBottomBar: View {
             if showsCompose {
                 Button(action: onCompose) {
                     Image(systemName: "square.and.pencil")
-                        .font(.system(size: 20))
-                        .frame(width: 48, height: 48)
-                        .notesGlass(in: Circle())
+                        .font(.system(size: 20, weight: .regular))
+                        .frame(width: 52, height: 52)
+                        .background(Color(.systemBackground), in: Circle())
+                        .overlay(Circle().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("New note")
@@ -810,7 +924,8 @@ private struct NotesSearchField: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.primary)
             TextField("Search", text: $appState.searchText)
                 .accessibilityLabel("Search notes")
                 .textInputAutocapitalization(.never)
@@ -818,10 +933,15 @@ private struct NotesSearchField: View {
                 .onSubmit {
                     Task { await appState.handleSearchSubmit(appState.searchText) }
                 }
+            Image(systemName: "mic")
+                .font(.system(size: 17, weight: .regular))
+                .foregroundStyle(.primary)
+                .accessibilityHidden(true)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .notesGlass(in: Capsule())
+        .padding(.horizontal, 16)
+        .frame(height: 52)
+        .background(Color(.systemBackground), in: Capsule())
+        .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
         .onChange(of: appState.searchText) { _, newValue in
             viewModel.queryChanged(newValue)
         }

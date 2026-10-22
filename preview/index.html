@@ -73,6 +73,12 @@
   .nav.inline h1 { font-size: 17px; font-weight: 650; letter-spacing: 0; }
   button { font: inherit; }
   .icon-btn, .text-btn { border: 0; background: transparent; color: var(--accent); font-weight: 600; padding: 8px; border-radius: 10px; cursor: pointer; }
+  .icon-round {
+    width: 36px; height: 36px; padding: 0; border-radius: 50%;
+    display: inline-grid; place-items: center; line-height: 1;
+    background: var(--card); color: var(--accent);
+    box-shadow: inset 0 0 0 0.5px rgba(60, 60, 67, 0.29);
+  }
   .search {
     margin: 0 16px 8px; border: 0; background: var(--fill); color: var(--text);
     border-radius: 12px; padding: 10px 12px 10px 34px; font: inherit; font-size: 17px;
@@ -95,14 +101,29 @@
   .pin { background: var(--accent-soft); }
   .actions { display: flex; gap: 6px; }
   .mini { border: 0; background: var(--fill); color: var(--accent); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; }
+  .unpin { color: #8e8e93; position: relative; }
+  .unpin::after {
+    content: ""; position: absolute; left: 7px; right: 7px; top: 50%; height: 1.5px;
+    background: #8e8e93; transform: rotate(-32deg); border-radius: 1px;
+  }
   .mini.danger { color: var(--danger); }
   .bar {
-    flex: none; display: flex; align-items: center; gap: 8px;
-    padding: 8px 16px calc(18px + env(safe-area-inset-bottom));
-    background: color-mix(in srgb, var(--bar) 72%, transparent);
-    backdrop-filter: blur(28px) saturate(1.6);
+    flex: none; display: flex; align-items: center; gap: 12px;
+    padding: 8px 16px calc(12px + env(safe-area-inset-bottom));
+    background: transparent;
     border-top: 0;
   }
+  .search-pill {
+    flex: 1; display: flex; align-items: center; height: 52px; border-radius: 26px;
+    background: var(--card); padding: 0 14px; gap: 8px;
+    box-shadow: inset 0 0 0 0.5px rgba(60, 60, 67, 0.18);
+  }
+  .search-pill input {
+    flex: 1; border: 0; background: transparent; color: var(--text);
+    font: inherit; font-size: 17px; outline: none; min-width: 0;
+  }
+  .search-pill .glass { color: var(--text); font-size: 17px; }
+  .mic { color: var(--text); font-size: 16px; }
   .format {
     flex: none; display: flex; gap: 6px; margin: 0 12px 10px; padding: 6px 8px;
     border-radius: 26px;
@@ -113,9 +134,9 @@
   .when { float: right; color: var(--accent); font-size: 12px; font-weight: 600; }
   .bar .search { margin: 0; flex: 1; border-radius: 22px; }
   .compose {
-    width: 48px; height: 48px; border-radius: 50%; border: 0; flex: none; cursor: pointer;
-    background: color-mix(in srgb, var(--card) 72%, transparent);
-    backdrop-filter: blur(18px); font-size: 20px; color: var(--accent);
+    width: 52px; height: 52px; border-radius: 50%; border: 0; flex: none; cursor: pointer;
+    background: var(--card); font-size: 20px; color: var(--text);
+    box-shadow: inset 0 0 0 0.5px rgba(60, 60, 67, 0.18);
   }
   .done {
     width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--accent);
@@ -219,6 +240,8 @@
   .muted, .fine { color: var(--secondary); margin: 0; }
   .muted { font-size: 17px; line-height: 1.35; }
   .fine { font-size: 13px; line-height: 1.4; }
+  .copyright { text-align: center; color: rgba(60, 60, 67, 0.38); font-size: 13px; margin: 28px 16px 8px; }
+  @media (prefers-color-scheme: dark) { .copyright { color: rgba(235, 235, 245, 0.35); } }
   .set-card { background: var(--card); border-radius: 12px; overflow: hidden; margin-top: 18px; }
   .set-row { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px 16px; border: 0; background: transparent; color: inherit; font: inherit; font-size: 17px; text-align: left; cursor: pointer; }
   .set-row span { color: var(--secondary); }
@@ -231,7 +254,8 @@
   input[type="password"], input.title, textarea.body, .field input, .rename {
     width: 100%; border: 0; background: var(--card); color: var(--text); border-radius: 12px; padding: 12px; font: inherit;
   }
-  textarea.body { min-height: 220px; resize: none; font-size: 17px; line-height: 1.4; background: transparent; }
+  textarea.body, .body[contenteditable="true"] { min-height: 220px; resize: none; font-size: 17px; line-height: 1.4; background: transparent; outline: none; white-space: pre-wrap; }
+  .body img { width: 100%; border-radius: 12px; display: block; margin: 8px 0; }
   input.title { font-size: 28px; font-weight: 700; background: transparent; padding-left: 0; }
   .field input.glass-field {
     background: rgba(255, 255, 255, 0.55);
@@ -281,12 +305,26 @@
   .sheet-card { width: 100%; background: var(--card); border-radius: 22px 22px 0 0; padding: 18px 18px 28px; }
   .sheet-card h2 { margin: 8px 0 4px; font-size: 20px; text-align: center; }
   .error { color: var(--danger); font-size: 14px; margin: 0; }
+  .fav-row { display: flex; gap: 12px; padding: 4px 14px 14px; overflow: hidden; }
+  .fav-tile {
+    width: 76px; height: 76px; flex: none; border: 0; border-radius: 14px; cursor: pointer;
+    background: var(--fill); font-size: 28px;
+  }
+  .segment {
+    display: flex; margin: 8px 16px 10px; padding: 2px; height: 32px;
+    background: rgba(120, 120, 128, 0.12); border-radius: 9px;
+  }
+  .segment button {
+    flex: 1; border: 0; background: transparent; border-radius: 7px;
+    color: var(--text); font-size: 16px; cursor: pointer;
+  }
+  .segment button.on { background: var(--card); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 10px; }
   .chip { border: 0; background: var(--fill); color: var(--text); border-radius: 999px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
   .chip.on { background: var(--accent); color: var(--accent-ink); }
-  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 4px 16px 16px; }
-  .tile { border: 0; background: var(--card); border-radius: 12px; padding: 0; overflow: hidden; text-align: left; color: inherit; cursor: pointer; }
-  .thumb { height: 92px; display: grid; place-items: center; font-size: 28px; background: var(--accent-soft); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; padding: 0 0 16px; }
+  .tile { border: 0; background: var(--fill); border-radius: 0; padding: 0; overflow: hidden; color: inherit; cursor: pointer; aspect-ratio: 1; }
+  .thumb { width: 100%; height: 100%; display: grid; place-items: center; font-size: 28px; background: var(--fill); }
   .tile span { display: block; font-size: 12px; padding: 6px 8px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .seg { display: flex; margin: 0 16px 8px; background: var(--fill); border-radius: 10px; padding: 2px; }
   .seg button { flex: 1; border: 0; background: transparent; border-radius: 8px; padding: 7px; cursor: pointer; color: var(--text); font-weight: 600; }
@@ -296,6 +334,7 @@
   .card strong { display: block; margin-bottom: 6px; }
   .card p { margin: 0; color: var(--secondary); font-size: 14px; }
   .empty { padding: 28px 24px 8px; text-align: center; color: var(--secondary); }
+  .scroll:has(> .empty:only-child) { display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .empty strong { display: block; color: var(--text); font-size: 17px; }
   .empty span { display: block; margin-top: 4px; font-size: 15px; }
   @media (max-width: 520px) {
@@ -333,6 +372,7 @@ const state = {
   fileFilter: "All",
   fileQuery: "",
   viewer: null,
+  fileInfo: false,
   notes: [
     { id: 1, title: "Grocery list", body: "Milk, oats, coffee, apples.", updated: now - 3600000, pinned: false, deleted: null },
     { id: 2, title: "Weekend", body: "Walk, farmers market, call family.", updated: now - day, pinned: true, deleted: null },
@@ -401,6 +441,11 @@ function button(label, className, action) {
 }
 function icon(symbol, label, action) {
   const node = button(symbol, "icon-btn", action);
+  node.setAttribute("aria-label", label);
+  return node;
+}
+function roundIcon(symbol, label, action) {
+  const node = button(symbol, "icon-btn icon-round", action);
   node.setAttribute("aria-label", label);
   return node;
 }
@@ -581,8 +626,9 @@ function enableVault(box) {
 }
 
 function searchField() {
+  const wrap = el("div", "search-pill");
+  wrap.append(el("span", "glass", "⌕"));
   const search = document.createElement("input");
-  search.className = "search";
   search.placeholder = "Search";
   search.setAttribute("aria-label", "Search notes");
   search.autocomplete = "off";
@@ -602,7 +648,10 @@ function searchField() {
       render();
     }
   };
-  return search;
+  const mic = el("span", "mic", "🎤");
+  mic.setAttribute("aria-hidden", "true");
+  wrap.append(search, mic);
+  return wrap;
 }
 
 let paintNotes = () => {};
@@ -617,7 +666,7 @@ function folders() {
     render();
   }));
   trail.append(button("Edit", "text-btn", () => {}));
-  const { screen, body } = column("Folders", icon("⚙", "Settings", () => { state.screen = "settings"; render(); }), trail);
+  const { screen, body } = column("Folders", roundIcon("⚙", "Settings", () => { state.screen = "settings"; render(); }), trail);
   const section = el("div", "group");
   state.folders.forEach((name) => {
     const count = name === "Recently Deleted"
@@ -786,7 +835,7 @@ function noteRow(note, deleted) {
   if (deleted) {
     actions.append(button("Recover", "text-btn", () => { note.deleted = null; render(); }));
   } else {
-    actions.append(button(note.pinned ? "📌" : "📍", "mini", () => { note.pinned = !note.pinned; render(); }));
+    actions.append(button(note.pinned ? "📌" : "📍", note.pinned ? "mini unpin" : "mini", () => { note.pinned = !note.pinned; render(); }));
     actions.append(button("🗑", "mini danger", () => { note.deleted = Date.now(); note.pinned = false; render(); }));
   }
   row.append(main, actions);
@@ -806,10 +855,12 @@ function editor() {
   trail.style.display = "flex";
   trail.style.gap = "8px";
   trail.style.alignItems = "center";
-  trail.append(icon(note.pinned ? "📌" : "📍", "Pin", () => {
+  const pinButton = icon(note.pinned ? "📌" : "📍", note.pinned ? "Unpin" : "Pin", () => {
     note.pinned = !note.pinned;
     render();
-  }));
+  });
+  if (note.pinned) pinButton.classList.add("unpin");
+  trail.append(pinButton);
   trail.append(button("✓", "done", () => closeEditor(note, vault)));
   trail.lastChild.setAttribute("aria-label", "Done");
   const { screen, body, nav } = column("", button("‹", "icon-btn", () => closeEditor(note, vault)), trail);
@@ -820,14 +871,15 @@ function editor() {
   title.placeholder = "Title";
   title.setAttribute("aria-label", "Title");
   title.value = note.title;
-  const area = document.createElement("textarea");
-  area.className = "body";
-  area.placeholder = "Start writing";
+  const area = el("div", "body");
+  area.contentEditable = "true";
+  area.setAttribute("role", "textbox");
   area.setAttribute("aria-label", "Note body");
-  area.value = note.body;
+  area.setAttribute("aria-placeholder", "Start writing");
+  area.innerText = note.body;
   const save = () => {
     note.title = title.value;
-    note.body = area.value;
+    note.body = area.innerText;
     note.updated = Date.now();
     nav.querySelector("h1").textContent = note.title || "New Note";
   };
@@ -840,8 +892,25 @@ function editor() {
   const format = el("div", "format");
   ["✓", "Aa", "📷", "✎"].forEach((symbol) => {
     format.append(button(symbol, "icon-btn", () => {
-      if (symbol === "✓") area.value += (area.value ? "\n" : "") + "○ ";
-      if (symbol === "Aa") area.value += (area.value && !area.value.endsWith("\n") ? "\n" : "") + note.title;
+      if (symbol === "✓") area.append(document.createTextNode((area.innerText ? "\n" : "") + "○ "));
+      if (symbol === "Aa") area.append(document.createTextNode((area.innerText && !area.innerText.endsWith("\n") ? "\n" : "") + note.title));
+      if (symbol === "📷") {
+        const img = document.createElement("img");
+        img.alt = "Photo";
+        img.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='640' height='360'><rect width='640' height='360' rx='24' fill='%23d8d8de'/><text x='320' y='190' text-anchor='middle' font-size='42' fill='%236c6c70' font-family='sans-serif'>Photo</text></svg>";
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount && area.contains(selection.anchorNode)) {
+          const range = selection.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(img);
+          range.setStartAfter(img);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } else {
+          area.append(img);
+        }
+      }
       save();
     }));
   });
@@ -885,6 +954,8 @@ function vaultSettings() {
   });
   wipe.style.color = "var(--danger)";
   box.append(wipe);
+  box.append(el("p", "fine", "Version 1.0"));
+  box.append(el("p", "copyright", "© 2026 DK Technologies Inc."));
   box.append(el("p", "fine", "This preview does not encrypt and is not the iOS app."));
   body.append(box);
   screen.classList.add("vault-tone");
@@ -938,6 +1009,7 @@ function settings() {
   box.append(versionCard);
   if (state.versionHint) box.append(el("p", "fine version-hint", "Tap Version 10 times to change the phrase."));
   box.append(el("p", "fine", "NoteLy keeps your notes on this device and does not send note contents anywhere."));
+  box.append(el("p", "copyright", "© 2026 DK Technologies Inc."));
   if (state.settingsNotice) box.append(el("p", "fine", state.settingsNotice));
   body.append(box);
   return screen;
@@ -1015,21 +1087,22 @@ function showRedirect() {
 
 function vault() {
   if (!state.vaultTab || state.vaultTab === "folders") {
-    const { screen, body } = column("Hidden Folders", icon("🔒", "Lock", () => {
+    const { screen, body } = column("Hidden Folders", roundIcon("🔒", "Lock", () => {
       state.locking = false;
       state.screen = "folders";
       state.vaultTab = "folders";
       render();
-    }), icon("⋯", "Settings", () => { state.screen = "vaultSettings"; render(); }));
+    }), roundIcon("⚙", "Settings", () => { state.screen = "vaultSettings"; render(); }));
     const stars = state.files.filter((file) => file.favorite);
     if (stars.length) {
       const fav = el("div", "group");
       fav.append(el("h2", "", "FAVORITES"));
-      const row = el("div", "row");
+      const row = el("div", "fav-row");
       stars.slice(0, 12).forEach((file) => {
-        const chip = el("button", "count", file.name);
-        chip.onclick = () => { state.vaultTab = "files"; state.viewer = file.id; state.screen = "fileViewer"; render(); };
-        row.append(chip);
+        const tile = el("button", "fav-tile", file.kind === "Photos" ? "🖼" : file.kind === "Videos" ? "▶" : "📄");
+        tile.setAttribute("aria-label", file.kind === "Photos" ? "Favorite photo" : file.kind === "Videos" ? "Favorite video" : "Favorite file");
+        tile.onclick = () => { state.vaultTab = "files"; state.viewer = file.id; state.screen = "fileViewer"; render(); };
+        row.append(tile);
       });
       fav.append(row);
       body.append(fav);
@@ -1062,9 +1135,9 @@ function vault() {
     }),
     icon("+", "Add", () => addFile())
   );
-  const { screen, body, nav } = column(state.vaultTab === "notes" ? "Notes" : (state.openFolder || "Files"), button("Folders", "text-btn", () => {
-    state.vaultTab = "folders";
-    state.openFolder = "";
+  const { screen, body, nav } = column(state.vaultTab === "notes" ? "Notes" : (state.openFolder || "Files"), button(state.openFolder ? "‹" : "Folders", "text-btn", () => {
+    if (state.openFolder) state.openFolder = "";
+    else state.vaultTab = "folders";
     render();
   }), state.vaultTab === "notes" ? el("span") : fileTrail);
   nav.classList.add("inline");
@@ -1096,15 +1169,17 @@ function vault() {
       render();
     });
     compose.setAttribute("aria-label", "New note");
-    bar.append(el("div", "grow"), compose);
+    bar.append(searchField(), compose);
     screen.append(bar);
   } else {
-    const chips = el("div", "chips");
-    ["All", "Photos", "Videos", "Documents", "Favorites"].forEach((name) => {
-      chips.append(button(name, "chip" + (state.fileFilter === name ? " on" : ""), () => {
+    const chips = el("div", "segment");
+    [["All", "⊞"], ["Photos", "🖼"], ["Videos", "▶"], ["Documents", "📄"]].forEach(([name, mark]) => {
+      const item = button(mark, state.fileFilter === name ? "on" : "", () => {
         state.fileFilter = name;
         render();
-      }));
+      });
+      item.setAttribute("aria-label", name);
+      chips.append(item);
     });
     const search = document.createElement("input");
     search.className = "search";
@@ -1143,14 +1218,20 @@ function vault() {
       const tile = el("button", state.fileGallery ? "tile" : "row");
       if (state.fileGallery) {
         const thumb = el("div", "thumb", file.kind === "Photos" ? "🖼" : file.kind === "Videos" ? "🎬" : "📄");
-        tile.append(thumb, el("span", "", (file.favorite ? "♥ " : "") + file.name));
+        tile.append(thumb);
+        tile.setAttribute("aria-label", file.kind);
       } else {
         tile.append(el("strong", "", file.name));
       }
       tile.onclick = () => { state.viewer = file.id; state.screen = "fileViewer"; render(); };
       grid.append(tile);
     });
-    if (!visibleFiles().length) grid.append(el("div", "empty", "No private files"));
+    if (!visibleFiles().length) {
+      const empty = el("div", "empty");
+      empty.append(el("strong", "", "No private files"));
+      empty.append(el("span", "", "Photos, videos, and files you add here stay on this device."));
+      grid.append(empty);
+    }
     const summary = el("p", "fine", "Preview only. Folder passcodes stay in this page and are not encrypted.");
     summary.style.padding = "0 16px 12px";
     body.append(chips, search, folders, grid, summary);
@@ -1182,18 +1263,26 @@ function addFile() {
 
 function fileViewer() {
   const file = state.files.find((item) => item.id === state.viewer);
-  const { screen, body } = column(file ? file.name : "File", button("Files", "text-btn", () => {
+  const kind = file ? (file.kind === "Photos" ? "Photo" : file.kind === "Videos" ? "Video" : "File") : "File";
+  const { screen, body } = column(kind, button("Files", "text-btn", () => {
     state.screen = "vault";
     state.vaultTab = "files";
+    state.fileInfo = false;
     render();
-  }), button(file && file.favorite ? "Unfavorite" : "Favorite", "text-btn", () => {
-    if (!file) return;
-    file.favorite = !file.favorite;
+  }), button("i", "text-btn", () => {
+    state.fileInfo = !state.fileInfo;
     render();
   }));
   const box = el("div", "pad");
   box.append(el("div", "thumb", "📄"));
   box.append(el("p", "muted", "In the real app this opens a photo, video, PDF, or document viewer. Nothing here is decrypted."));
+  if (state.fileInfo && file) {
+    const info = el("div", "group");
+    info.append(el("p", "fine", "Name: " + file.name));
+    info.append(el("p", "fine", "Kind: " + kind));
+    info.append(button("Close", "secondary-btn", () => { state.fileInfo = false; render(); }));
+    box.append(info);
+  }
   box.append(button("Export", "primary", () => {
     box.append(el("p", "fine", "Exported files leave the protected vault."));
   }));

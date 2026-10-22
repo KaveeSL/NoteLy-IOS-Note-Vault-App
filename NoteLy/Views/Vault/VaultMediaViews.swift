@@ -17,6 +17,7 @@ struct VaultItemViewer: View {
     @State private var player: AVPlayer?
     @State private var loader: VaultAssetLoader?
     @State private var failed = false
+    @State private var showInfo = false
 
     var body: some View {
         NavigationStack {
@@ -27,17 +28,37 @@ struct VaultItemViewer: View {
                     content
                 }
             }
-            .navigationTitle(item.originalName)
+            .navigationTitle(item.type == .photo ? "Photo" : (item.type == .video ? "Video" : "File"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { close() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button(item.isFavorite ? "Unfavorite" : "Favorite") {
-                        model.setFavorite(ids: [item.id], favorite: !item.isFavorite)
+                    Button {
+                        showInfo = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                    }
+                    .accessibilityLabel("Info")
+                }
+            }
+            .sheet(isPresented: $showInfo) {
+                NavigationStack {
+                    List {
+                        LabeledContent("Name", value: item.originalName)
+                        LabeledContent("Size", value: ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))
+                        LabeledContent("Added", value: item.importedAt.formatted(date: .abbreviated, time: .shortened))
+                    }
+                    .navigationTitle("Info")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showInfo = false }
+                        }
                     }
                 }
+                .presentationDetents([.medium])
             }
         }
         .task { await open() }

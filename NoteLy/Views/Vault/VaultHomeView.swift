@@ -10,6 +10,7 @@ struct VaultHomeView: View {
     @State private var pendingNote: VaultNote?
     @State private var editingFavorites = false
     @State private var openedFile: VaultItem?
+    @State private var noteQuery = ""
     var body: some View {
         NavigationStack(path: $path) {
             List {
@@ -20,9 +21,17 @@ struct VaultHomeView: View {
                                 Button {
                                     removeFavorite(item)
                                 } label: {
-                                    Label(item.title, systemImage: "minus.circle.fill")
-                                        .foregroundStyle(.primary)
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "minus.circle.fill")
+                                            .font(.title3)
+                                            .foregroundStyle(.red)
+                                        favoriteTile(item)
+                                            .frame(width: 44, height: 44)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                        Spacer(minLength: 0)
+                                    }
                                 }
+                                .accessibilityLabel(favoriteLabel(item))
                             }
                             .onMove(perform: moveFavorites)
                         } else {
@@ -66,10 +75,8 @@ struct VaultHomeView: View {
                     .accessibilityIdentifier("vault.lock")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink {
-                        VaultSettingsView(settings: appState.settings, autoLock: appState.autoLock)
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
+                    Button { path.append("settings") } label: {
+                        Image(systemName: "gearshape")
                     }
                     .accessibilityLabel("Settings")
                 }
@@ -90,6 +97,8 @@ struct VaultHomeView: View {
                     VaultFilesView(model: files)
                 } else if destination == "trash" {
                     VaultTrashView(model: model, files: files)
+                } else if destination == "settings" {
+                    VaultSettingsView(settings: appState.settings, autoLock: appState.autoLock)
                 } else {
                     vaultNotes
                 }
@@ -135,8 +144,7 @@ struct VaultHomeView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 28)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
                     Section("Today") {
@@ -144,18 +152,18 @@ struct VaultHomeView: View {
                             NavigationLink(value: note.id) {
                                 VaultNoteRow(note: note)
                             }
-                            .swipeActions {
-                                Button {
-                                    model.setFavorite(id: note.id, favorite: !note.isFavorite)
-                                } label: {
-                                    Label(note.isFavorite ? "Unfavorite" : "Favorite", systemImage: "star")
-                                }
-                                .tint(Theme.vault)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
                                     pendingNote = note
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
+                                Button {
+                                    model.setFavorite(id: note.id, favorite: !note.isFavorite)
+                                } label: {
+                                    Label(note.isFavorite ? "Unfavorite" : "Favorite", systemImage: note.isFavorite ? "star.slash" : "star")
+                                }
+                                .tint(Theme.vault)
                             }
                         }
                     }
@@ -171,6 +179,8 @@ struct VaultHomeView: View {
                 .listStyle(.insetGrouped)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemGroupedBackground))
         .navigationTitle("Notes")
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 8) {
@@ -182,26 +192,21 @@ struct VaultHomeView: View {
                         .notesGlass(in: Capsule())
                         .accessibilityLabel(status)
                 }
-                HStack {
-                    Spacer()
-                    Button(action: createNote) {
-                        Image(systemName: "square.and.pencil")
-                            .font(.system(size: 20))
-                            .frame(width: 48, height: 48)
-                            .notesGlass(in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("New note")
-                }
+                NotesStyleSearchBar(text: $noteQuery, prompt: "Search", onCompose: createNote)
             }
             .padding(.horizontal, 16)
-            .padding(.top, 6)
+            .padding(.top, 8)
             .padding(.bottom, 8)
         }
     }
 
     private var activeNotes: [VaultNote] {
-        model.notes.filter { $0.deletedAt == nil }
+        let alive = model.notes.filter { $0.deletedAt == nil }
+        let word = noteQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !word.isEmpty else { return alive }
+        return alive.filter {
+            $0.title.localizedCaseInsensitiveContains(word) || $0.body.localizedCaseInsensitiveContains(word)
+        }
     }
 
     private var deletedCount: Int {
@@ -265,24 +270,63 @@ struct VaultHomeView: View {
                     Button {
                         openFavorite(item)
                     } label: {
-                        VStack(spacing: 6) {
-                            Image(systemName: item.systemImage)
-                                .font(.title2)
-                                .foregroundStyle(Theme.vault)
-                                .frame(width: 64, height: 64)
-                                .background(Theme.vault.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            Text(item.title)
-                                .font(.caption)
-                                .lineLimit(1)
-                                .frame(width: 72)
-                        }
+                        favoriteTile(item)
+                            .frame(width: 76, height: 76)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Favorite \(item.title)")
+                    .accessibilityLabel(favoriteLabel(item))
                 }
             }
             .padding(.vertical, 4)
         }
+    }
+
+    @ViewBuilder
+    private func favoriteTile(_ item: FavoriteCandidate) -> some View {
+        if let identity = favoriteIdentity(item), identity.isNote, let note = model.notes.first(where: { $0.id == identity.id }) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(note.title.isEmpty ? "Note" : note.title)
+                    .font(.caption2.weight(.semibold))
+                    .lineLimit(2)
+                Text(note.body)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(4)
+                Spacer(minLength: 0)
+            }
+            .padding(6)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(Color(.secondarySystemBackground))
+        } else if let identity = favoriteIdentity(item), let file = files.items.first(where: { $0.id == identity.id }) {
+            Color(.secondarySystemBackground)
+                .overlay {
+                    ThumbnailView(item: file, model: files)
+                        .scaledToFill()
+                }
+                .clipped()
+        } else {
+            Color(.secondarySystemBackground)
+        }
+    }
+
+    private func favoriteLabel(_ item: FavoriteCandidate) -> String {
+        if item.id.hasPrefix("note-") { return "Favorite note" }
+        guard let identity = favoriteIdentity(item),
+              let file = files.items.first(where: { $0.id == identity.id }) else {
+            return "Favorite"
+        }
+        switch file.type {
+        case .photo: return "Favorite photo"
+        case .video: return "Favorite video"
+        default: return "Favorite file"
+        }
+    }
+
+    private func favoriteIdentity(_ item: FavoriteCandidate) -> (isNote: Bool, id: UUID)? {
+        let raw = item.id.split(separator: "-", maxSplits: 1).last.map(String.init) ?? ""
+        guard let id = UUID(uuidString: raw) else { return nil }
+        return (item.id.hasPrefix("note-"), id)
     }
 
     private func openFavorite(_ item: FavoriteCandidate) {
@@ -339,42 +383,32 @@ private struct VaultTrashView: View {
     @ObservedObject var files: VaultFilesViewModel
     @State private var pendingNote: VaultNote?
     @State private var pendingFile: VaultItem?
+    @State private var confirmEmpty = false
 
     var body: some View {
         List {
-            Section("Notes") {
-                let notes = model.notes.filter { $0.deletedAt != nil }
-                if notes.isEmpty {
-                    Text("No deleted notes")
-                        .foregroundStyle(.secondary)
-                }
-                ForEach(notes) { note in
-                    VaultNoteRow(note: note)
-                        .swipeActions {
-                            Button("Recover") { model.restore(id: note.id) }.tint(Theme.vault)
-                            Button("Delete", role: .destructive) { pendingNote = note }
-                        }
-                }
+            NavigationLink {
+                deletedNotes
+            } label: {
+                vaultBinRow(name: "Notes", symbol: "note.text", count: model.notes.filter { $0.deletedAt != nil }.count)
             }
-            Section("Files") {
-                if files.deletedItems.isEmpty {
-                    Text("No deleted files")
-                        .foregroundStyle(.secondary)
-                }
-                ForEach(files.deletedItems) { item in
-                    Text(item.originalName)
-                        .swipeActions {
-                            Button("Recover") { files.restore(ids: [item.id]) }.tint(Theme.vault)
-                            Button("Delete", role: .destructive) { pendingFile = item }
-                        }
-                }
+            NavigationLink {
+                deletedFiles
+            } label: {
+                vaultBinRow(name: "Files", symbol: "doc", count: files.deletedItems.count)
             }
         }
         .navigationTitle("Recently Deleted")
         .toolbar {
-            Button("Empty") {
+            Button("Empty") { confirmEmpty = true }
+        }
+        .alert("Delete everything in Recently Deleted?", isPresented: $confirmEmpty) {
+            Button("Delete", role: .destructive) {
                 Task { await appState.emptyRecentlyDeleted() }
             }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Notes and files in both folders are removed. This cannot be undone.")
         }
         .alert("Delete this note permanently?", isPresented: notePresented) {
             Button("Delete", role: .destructive) {
@@ -391,6 +425,94 @@ private struct VaultTrashView: View {
             Button("Cancel", role: .cancel) { pendingFile = nil }
         } message: {
             Text("This cannot be undone.")
+        }
+    }
+
+    private var deletedNotes: some View {
+        let notes = model.notes.filter { $0.deletedAt != nil }
+        return List {
+            if notes.isEmpty {
+                Text("No Notes")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .listRowSeparator(.hidden)
+            }
+            ForEach(notes) { note in
+                VaultNoteRow(note: note)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) { pendingNote = note } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        Button { model.restore(id: note.id) } label: {
+                            Label("Restore", systemImage: "arrow.uturn.backward")
+                        }
+                        .tint(Theme.vault)
+                    }
+                    .contextMenu {
+                        Button { model.restore(id: note.id) } label: {
+                            Label("Restore", systemImage: "arrow.uturn.backward")
+                        }
+                        Button(role: .destructive) { pendingNote = note } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+            }
+        }
+        .navigationTitle("Notes")
+    }
+
+    private var deletedFiles: some View {
+        List {
+            if files.deletedItems.isEmpty {
+                Text("No Files")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .listRowSeparator(.hidden)
+            }
+            ForEach(files.deletedItems) { item in
+                HStack(spacing: 12) {
+                    ThumbnailView(item: item, model: files)
+                        .frame(width: 52, height: 52)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.type == .photo ? "Photo" : (item.type == .video ? "Video" : "File"))
+                            .lineLimit(1)
+                        Text(ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) { pendingFile = item } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    Button { files.restore(ids: [item.id]) } label: {
+                        Label("Restore", systemImage: "arrow.uturn.backward")
+                    }
+                    .tint(Theme.vault)
+                }
+                .contextMenu {
+                    Button { files.restore(ids: [item.id]) } label: {
+                        Label("Restore", systemImage: "arrow.uturn.backward")
+                    }
+                    Button(role: .destructive) { pendingFile = item } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+            }
+        }
+        .navigationTitle("Files")
+    }
+
+    private func vaultBinRow(name: String, symbol: String, count: Int) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .foregroundStyle(Theme.vault)
+                .frame(width: 28)
+            Text(name)
+            Spacer()
+            Text("\(count)")
+                .foregroundStyle(.secondary)
         }
     }
 

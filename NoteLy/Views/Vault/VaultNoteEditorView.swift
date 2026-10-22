@@ -13,6 +13,7 @@ struct VaultNoteEditorView: View {
     @State private var pickerItem: PhotosPickerItem?
     @State private var images: [UUID: Data] = [:]
     @State private var pendingDelete: VaultAttachment?
+    @State private var confirmNoteDelete = false
 
     private var note: VaultNote? {
         model.notes.first { $0.id == noteID }
@@ -67,6 +68,21 @@ struct VaultNoteEditorView: View {
                     .tint(Theme.vault)
                 }
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        if let note { model.setFavorite(id: note.id, favorite: !note.isFavorite) }
+                    } label: {
+                        Label(note?.isFavorite == true ? "Unfavorite" : "Favorite", systemImage: note?.isFavorite == true ? "star.slash" : "star")
+                    }
+                    Button(role: .destructive) { confirmNoteDelete = true } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel("More")
+            }
             ToolbarItem(placement: .confirmationAction) {
                 Button {
                     model.flush()
@@ -108,6 +124,15 @@ struct VaultNoteEditorView: View {
                 pendingDelete = nil
             }
             Button("Cancel", role: .cancel) { pendingDelete = nil }
+        }
+        .alert("Delete this note?", isPresented: $confirmNoteDelete) {
+            Button("Delete", role: .destructive) {
+                model.moveToTrash(id: noteID)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("It moves to Recently Deleted. You can restore it from there.")
         }
     }
 

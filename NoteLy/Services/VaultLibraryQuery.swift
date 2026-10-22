@@ -15,6 +15,15 @@ enum VaultFileFilter: String, CaseIterable, Identifiable {
         case .files: return "No Files"
         }
     }
+
+    var symbol: String {
+        switch self {
+        case .all: return "square.grid.2x2"
+        case .photos: return "photo"
+        case .videos: return "video"
+        case .files: return "doc"
+        }
+    }
 }
 
 enum VaultFileSort: String, CaseIterable, Identifiable {

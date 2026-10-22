@@ -32,6 +32,8 @@ struct NoteEditorView: View {
     @State private var pdfAttachment: NoteAttachment?
     @State private var showAttach = false
     @State private var showPhotos = false
+    @State private var confirmDelete = false
+    @State private var removeLock = false
 
     var body: some View {
         Group {
@@ -51,6 +53,17 @@ struct NoteEditorView: View {
             removeIfEmpty()
             try? modelContext.save()
         }
+        .onChange(of: removeLock) { _, requested in
+            guard requested else { return }
+            removeLock = false
+            Task {
+                let outcome = await appState.biometric.authenticate(reason: UnlockPrompt.reason)
+                if case .success = outcome {
+                    NoteLocks.set(note.id, locked: false)
+                    unlocked = true
+                }
+            }
+        }
         .sheet(isPresented: $showDrawing) {
             MarkupCanvasView(data: note.drawingData) { data in
                 note.drawingData = data
@@ -60,7 +73,7 @@ struct NoteEditorView: View {
         }
         .sheet(isPresented: $showScanner) {
             DocumentScannerView { images in
-                attachImages(images, prefix: "Scan")
+                attachImages(images)
             }
         }
         .fileImporter(isPresented: $showFiles, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
@@ -130,6 +143,17 @@ struct NoteEditorView: View {
         } message: {
             Text(saveError ?? "Try again.")
         }
+        .alert("Delete this note?", isPresented: $confirmDelete) {
+            Button("Delete", role: .destructive) {
+                note.deletedAt = .now
+                note.isPinned = false
+                try? modelContext.save()
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("It moves to Recently Deleted. You can restore it from there.")
+        }
     }
 
     private var writing: some View {
@@ -140,23 +164,21 @@ struct NoteEditorView: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
-                if let attachments = note.attachments, !attachments.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(attachments, id: \.persistentModelID) { attachment in
-                                Button(attachment.fileName.isEmpty ? attachment.typeRaw : attachment.fileName) {
-                                    if attachment.fileName.lowercased().hasSuffix(".pdf") || attachment.typeRaw == "pdf" {
-                                        pdfAttachment = attachment
-                                    }
+                if let attachments = note.attachments?.filter({ $0.typeRaw != "photo" && $0.typeRaw != "scan" }), !attachments.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(attachments, id: \.persistentModelID) { attachment in
+                            Button(attachment.fileName.isEmpty ? attachment.typeRaw : attachment.fileName) {
+                                if attachment.fileName.lowercased().hasSuffix(".pdf") || attachment.typeRaw == "pdf" {
+                                    pdfAttachment = attachment
                                 }
-                                .font(.caption)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .notesGlass(in: Capsule())
                             }
+                            .font(.caption)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .notesGlass(in: Capsule())
                         }
-                        .padding(.horizontal, 16)
                     }
+                    .padding(.horizontal, 16)
                 }
             }
             ZStack {
@@ -177,6 +199,15 @@ struct NoteEditorView: View {
             }
         }
         .background(Color(.systemBackground))
+        .onAppear(perform: inlineSavedPhotos)
+    }
+
+    /// Older photos were stored beside the text. Put them in the writing once, then drop the spare copy.
+    private func inlineSavedPhotos() {
+        let photos = (note.attachments ?? []).filter { $0.typeRaw == "photo" || $0.typeRaw == "scan" }
+        guard !photos.isEmpty, editor.inlineStoredPhotos(photos) else { return }
+        for photo in photos { modelContext.delete(photo) }
+        try? modelContext.save()
     }
 
     private var styleMenu: some View {
@@ -227,29 +258,40 @@ struct NoteEditorView: View {
             Button { showShare = true } label: { Image(systemName: "square.and.arrow.up") }
                 .accessibilityLabel("Share")
             Menu {
-                Button(note.isPinned ? "Unpin" : "Pin") { note.isPinned.toggle() }
-                Button(NoteLocks.contains(note.id) ? "Remove Lock" : "Lock") {
-                    let locked = !NoteLocks.contains(note.id)
-                    NoteLocks.set(note.id, locked: locked)
-                    if locked { unlocked = false }
+                Button { note.isPinned.toggle() } label: {
+                    Label(note.isPinned ? "Unpin" : "Pin", systemImage: note.isPinned ? "pin.slash" : "pin")
                 }
-                Button("Find in Note") { showFind.toggle() }
-                Button("Move") { showMove = true }
-                Button("Add Link") { showLink = true }
-                Button("Equation") { showEquation = true }
-                Menu("Lines & Grids") {
+                .tint(note.isPinned ? Color(.systemGray) : Theme.accent)
+                Button {
+                    if NoteLocks.contains(note.id) {
+                        removeLock = true
+                    } else {
+                        NoteLocks.set(note.id, locked: true)
+                        unlocked = false
+                    }
+                } label: {
+                    Label(NoteLocks.contains(note.id) ? "Remove Lock" : "Lock", systemImage: NoteLocks.contains(note.id) ? "lock.open" : "lock")
+                }
+                Button { showFind.toggle() } label: { Label("Find in Note", systemImage: "magnifyingglass") }
+                Button { showMove = true } label: { Label("Move", systemImage: "folder") }
+                Button { showLink = true } label: { Label("Add Link", systemImage: "link") }
+                Button { showEquation = true } label: { Label("Equation", systemImage: "function") }
+                Menu {
                     Picker("Paper", selection: $preferences.paper) {
                         ForEach(PaperStyle.allCases) { style in
                             Text(style.rawValue).tag(style)
                         }
                     }
+                } label: {
+                    Label("Lines & Grids", systemImage: "squareshape.split.3x3")
                 }
-                Button("Print") { NotePrinter.print(title: note.title, body: editor.plainText) }
-                Button("Word count: \(editor.plainText.split(whereSeparator: \.isWhitespace).filter { !$0.isEmpty }.count)") {}
-                Button("Undo") { editor.undo() }
-                Button("Redo") { editor.redo() }
-                if note.deletedAt != nil {
-                    Text("Deleted \(note.deletedAt?.formatted(date: .abbreviated, time: .omitted) ?? "")")
+                Button { NotePrinter.print(title: note.title, body: editor.plainText) } label: {
+                    Label("Print", systemImage: "printer")
+                }
+                Button { editor.undo() } label: { Label("Undo", systemImage: "arrow.uturn.backward") }
+                Button { editor.redo() } label: { Label("Redo", systemImage: "arrow.uturn.forward") }
+                Button(role: .destructive) { confirmDelete = true } label: {
+                    Label("Delete", systemImage: "trash")
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
@@ -299,15 +341,18 @@ struct NoteEditorView: View {
     }
 
     private func attachPhotos(_ items: [PhotosPickerItem]) async {
-        var bytes = note.attachments?.reduce(0) { $0 + ($1.payload?.count ?? 0) } ?? 0
+        var bytes = note.richContent?.count ?? 0
         for item in items {
-            if let data = try? await item.loadTransferable(type: Data.self) {
-                bytes += data.count
-                guard InputValidators.withinNoteBudget(textBytes: note.plainText.utf8.count, attachmentBytes: bytes) else {
-                    saveError = "This note is too large to add that attachment."
-                    break
-                }
-                let attachment = NoteAttachment(typeRaw: "photo", fileName: "Photo", payload: data, thumbnail: data)
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            bytes += data.count
+            guard InputValidators.withinNoteBudget(textBytes: note.plainText.utf8.count, attachmentBytes: bytes) else {
+                saveError = "This note is too large to add that attachment."
+                break
+            }
+            if let image = UIImage(data: data) {
+                editor.insertImage(image)
+            } else {
+                let attachment = NoteAttachment(typeRaw: "file", fileName: "Video", payload: data)
                 attachment.note = note
                 modelContext.insert(attachment)
             }
@@ -317,12 +362,9 @@ struct NoteEditorView: View {
         photoItems = []
     }
 
-    private func attachImages(_ images: [UIImage], prefix: String) {
-        for (index, image) in images.enumerated() {
-            guard let data = image.jpegData(compressionQuality: 0.85) else { continue }
-            let attachment = NoteAttachment(typeRaw: "scan", fileName: "\(prefix) \(index + 1)", payload: data, thumbnail: data)
-            attachment.note = note
-            modelContext.insert(attachment)
+    private func attachImages(_ images: [UIImage]) {
+        for image in images {
+            editor.insertImage(image)
         }
         note.updatedAt = .now
         try? modelContext.save()
@@ -350,41 +392,132 @@ enum NoteTextStyle {
     case title, heading, subheading, body, mono
 }
 
+/// A photo in the note. Its height follows the text width, so it stays in the paragraph and scrolls with it.
+final class NoteImageAttachment: NSTextAttachment {
+    init(image: UIImage) {
+        super.init(data: nil, ofType: nil)
+        self.image = image
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
+    override func attachmentBounds(
+        for textContainer: NSTextContainer?,
+        proposedLineFragment lineFrag: CGRect,
+        glyphPosition position: CGPoint,
+        characterIndex charIndex: Int
+    ) -> CGRect {
+        guard let image, image.size.width > 0 else { return .zero }
+        let width = max(lineFrag.width, 1)
+        return CGRect(x: 0, y: 0, width: width, height: width * image.size.height / image.size.width)
+    }
+}
+
+private extension NSAttributedString {
+    var containsAttachments: Bool {
+        var found = false
+        enumerateAttribute(.attachment, in: NSRange(location: 0, length: length)) { value, _, stop in
+            if value != nil {
+                found = true
+                stop.pointee = true
+            }
+        }
+        return found
+    }
+}
+
+private extension UIImage {
+    func resized(to scale: CGFloat) -> UIImage {
+        let size = CGSize(width: self.size.width * scale, height: self.size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            draw(in: CGRect(origin: .zero, size: size))
+        }
+    }
+
+    func rounded(radius: CGFloat) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: radius).addClip()
+            draw(in: CGRect(origin: .zero, size: size))
+        }
+    }
+}
+
 @MainActor
 final class RichTextController: ObservableObject {
     weak var textView: UITextView?
     private var saveHandler: ((String, Data?) -> Void)?
 
-    var plainText: String { textView?.text ?? "" }
+    var plainText: String { Self.readable(textView?.text ?? "") }
+
+    /// Puts a photo in the writing at the caret, on its own line, so it scrolls with the words.
+    func insertImage(_ image: UIImage) {
+        guard let textView else { return }
+        let fitted = Self.fitted(image)
+        let attachment = NoteImageAttachment(image: fitted)
+        let piece = NSMutableAttributedString()
+        let font = UIFont.preferredFont(forTextStyle: .body)
+        let location: Int
+        let replaced: Int
+        if textView.isFirstResponder {
+            location = textView.selectedRange.location
+            replaced = textView.selectedRange.length
+        } else {
+            location = textView.textStorage.length
+            replaced = 0
+        }
+        if location > 0 {
+            let previous = textView.textStorage.attributedSubstring(from: NSRange(location: location - 1, length: 1)).string
+            if previous != "\n" {
+                piece.append(NSAttributedString(string: "\n", attributes: [.font: font]))
+            }
+        }
+        piece.append(NSAttributedString(attachment: attachment))
+        piece.append(NSAttributedString(string: "\n", attributes: [.font: font]))
+        textView.textStorage.beginEditing()
+        textView.textStorage.replaceCharacters(in: NSRange(location: location, length: replaced), with: piece)
+        textView.textStorage.endEditing()
+        let caret = min(location + piece.length, textView.textStorage.length)
+        textView.selectedRange = NSRange(location: caret, length: 0)
+        textView.scrollRangeToVisible(textView.selectedRange)
+        textDidChange()
+    }
+
+    /// Moves photos that used to sit above the text into the writing. Returns false when the editor is not ready.
+    func inlineStoredPhotos(_ photos: [NoteAttachment]) -> Bool {
+        guard let textView, !photos.isEmpty else { return false }
+        if !textView.attributedText.containsAttachments {
+            for photo in photos {
+                guard let data = photo.thumbnail ?? photo.payload, let image = UIImage(data: data) else { continue }
+                insertImage(image)
+            }
+        }
+        return true
+    }
 
     func bind(save: @escaping (String, Data?) -> Void) {
         saveHandler = save
     }
 
     func flush(into note: Note) {
-        let text = textView?.text ?? note.body
+        let text = Self.readable(textView?.text ?? note.body)
         note.plainText = text
         note.title = InputValidators.noteTitle(from: text)
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         note.body = lines.dropFirst().joined(separator: "\n")
         note.tags = Self.tags(in: text)
-        if let view = textView, let data = try? view.attributedText.data(
-            from: NSRange(location: 0, length: view.attributedText.length),
-            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]
-        ) {
-            note.richContent = data
+        if let view = textView {
+            note.richContent = Self.archive(view.attributedText)
         }
         note.updatedAt = .now
     }
 
     func textDidChange() {
         guard let textView else { return }
-        let text = textView.text ?? ""
-        let rtf = try? textView.attributedText.data(
-            from: NSRange(location: 0, length: textView.attributedText.length),
-            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]
-        )
-        saveHandler?(text, rtf)
+        saveHandler?(Self.readable(textView.text ?? ""), Self.archive(textView.attributedText))
     }
 
     func applyStyle(_ style: NoteTextStyle) {
@@ -502,6 +635,66 @@ final class RichTextController: ObservableObject {
         textDidChange()
     }
 
+    private static func readable(_ text: String) -> String {
+        text.replacingOccurrences(of: "\u{FFFC}", with: "")
+    }
+
+    private static func fitted(_ image: UIImage) -> UIImage {
+        let longest = max(image.size.width, image.size.height)
+        let cap: CGFloat = 1600
+        let source = longest > cap ? image.resized(to: cap / longest) : image
+        return source.rounded(radius: 12)
+    }
+
+    static func archive(_ attributed: NSAttributedString) -> Data? {
+        let type: NSAttributedString.DocumentType = attributed.containsAttachments
+            ? .rtfd
+            : .rtf
+        return try? attributed.data(
+            from: NSRange(location: 0, length: attributed.length),
+            documentAttributes: [.documentType: type]
+        )
+    }
+
+    static func unarchive(_ data: Data) -> NSAttributedString? {
+        let header = String(data: data.prefix(5), encoding: .ascii) ?? ""
+        if header.hasPrefix("{\\rtf") {
+            guard let loaded = try? NSAttributedString(
+                data: data,
+                options: [.documentType: NSAttributedString.DocumentType.rtf],
+                documentAttributes: nil
+            ) else { return nil }
+            return wrapImages(loaded)
+        }
+        if let loaded = try? NSAttributedString(
+            data: data,
+            options: [.documentType: NSAttributedString.DocumentType.rtfd],
+            documentAttributes: nil
+        ) {
+            return wrapImages(loaded)
+        }
+        guard let loaded = try? NSAttributedString(
+            data: data,
+            options: [.documentType: NSAttributedString.DocumentType.rtf],
+            documentAttributes: nil
+        ) else { return nil }
+        return wrapImages(loaded)
+    }
+
+    /// Restored files come back as plain attachments. Wrap them so they stay the width of the text.
+    private static func wrapImages(_ source: NSAttributedString) -> NSAttributedString {
+        let result = NSMutableAttributedString(attributedString: source)
+        source.enumerateAttribute(.attachment, in: NSRange(location: 0, length: source.length)) { value, range, _ in
+            guard let attachment = value as? NSTextAttachment, !(attachment is NoteImageAttachment) else { return }
+            let image = attachment.image
+                ?? attachment.fileWrapper?.regularFileContents.flatMap(UIImage.init(data:))
+                ?? attachment.contents.flatMap(UIImage.init(data:))
+            guard let image else { return }
+            result.addAttribute(.attachment, value: NoteImageAttachment(image: image), range: range)
+        }
+        return result
+    }
+
     static func tags(in text: String) -> [String] {
         let pattern = #"#([A-Za-z0-9_]{1,40})"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
@@ -535,12 +728,7 @@ struct RichTextView: UIViewRepresentable {
         accessory.autoresizingMask = .flexibleWidth
         view.inputAccessoryView = accessory
         context.coordinator.accessory = accessory
-        if let data = note.richContent,
-           let attributed = try? NSAttributedString(
-            data: data,
-            options: [.documentType: NSAttributedString.DocumentType.rtf],
-            documentAttributes: nil
-           ) {
+        if let data = note.richContent, let attributed = RichTextController.unarchive(data) {
             view.attributedText = attributed
         } else {
             let combined = [note.title, note.body].filter { !$0.isEmpty }.joined(separator: "\n")

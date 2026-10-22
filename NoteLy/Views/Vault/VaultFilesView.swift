@@ -17,6 +17,7 @@ struct VaultFilesView: View {
     @State private var renameTarget: VaultItem?
     @State private var renameText = ""
     @State private var pendingDelete: VaultItem?
+    @State private var pendingFolderDelete: VaultFolder?
     @State private var gateFolder: VaultFolder?
     @State private var gateCode = ""
     @State private var settingPasscode = false
@@ -26,9 +27,9 @@ struct VaultFilesView: View {
     @State private var explainCamera = false
 
     private let columns = [
-        GridItem(.flexible(), spacing: 2),
-        GridItem(.flexible(), spacing: 2),
-        GridItem(.flexible(), spacing: 2)
+        GridItem(.flexible(), spacing: 1),
+        GridItem(.flexible(), spacing: 1),
+        GridItem(.flexible(), spacing: 1)
     ]
 
     var body: some View {
@@ -42,7 +43,7 @@ struct VaultFilesView: View {
                     if model.visibleItems.isEmpty {
                         emptyFiles
                     } else {
-                        LazyVGrid(columns: columns, spacing: 2) {
+                        LazyVGrid(columns: columns, spacing: 1) {
                             ForEach(model.visibleItems) { item in
                                 cell(item)
                             }
@@ -87,9 +88,22 @@ struct VaultFilesView: View {
                 .accessibilityLabel(model.storageSummary)
         }
         .navigationTitle(folderTitle)
+        .navigationBarBackButtonHidden(model.folderID != nil)
         .searchable(text: $model.query, prompt: "Search files")
         .background(SearchFieldTraits())
-        .toolbar { toolbar }
+        .toolbar {
+            if model.folderID != nil {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        withAnimation(.smooth(duration: 0.3)) { model.folderID = nil }
+                    } label: {
+                        Image(systemName: "chevron.backward")
+                    }
+                    .accessibilityLabel("Files")
+                }
+            }
+            toolbar
+        }
         .sheet(item: $viewer) { item in
             VaultItemViewer(item: item, model: model)
         }
@@ -222,6 +236,15 @@ struct VaultFilesView: View {
             }
             Button("Cancel", role: .cancel) { newFolder = "" }
         }
+        .alert("Delete this folder?", isPresented: Binding(get: { pendingFolderDelete != nil }, set: { if !$0 { pendingFolderDelete = nil } })) {
+            Button("Delete", role: .destructive) {
+                if let pendingFolderDelete { model.deleteFolder(id: pendingFolderDelete.id) }
+                pendingFolderDelete = nil
+            }
+            Button("Cancel", role: .cancel) { pendingFolderDelete = nil }
+        } message: {
+            Text("Files in this folder stay in the library.")
+        }
         .alert("Delete this file?", isPresented: deletePresented) {
             Button("Delete", role: .destructive) {
                 if let pendingDelete {
@@ -278,12 +301,17 @@ struct VaultFilesView: View {
     }
 
     private var emptyFiles: some View {
-        ContentUnavailableView(
-            model.filter == .all && model.query.isEmpty ? "No private files" : model.filter.emptyTitle,
-            systemImage: model.filter == .videos ? "video" : "photo.on.rectangle",
-            description: Text(model.filter == .all ? "Photos, videos, and files you add here stay encrypted on this device." : "Nothing in this filter.")
-        )
-        .frame(minHeight: 240)
+        VStack(spacing: 4) {
+            Text(model.filter == .all && model.query.isEmpty ? "No Files" : model.filter.emptyTitle)
+                .font(.headline)
+            Text(model.filter == .all ? "Photos, videos, and files stay on this iPhone." : "Nothing in this filter.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 36)
+        .padding(.horizontal, 28)
     }
 
     private func exportSelection() {
@@ -331,19 +359,27 @@ struct VaultFilesView: View {
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
-                    Button(folder.hasPasscode ? "Change Passcode" : "Set Passcode") {
+                    Button {
                         settingPasscode = true
                         gateCode = ""
                         gateFolder = folder
+                    } label: {
+                        Label(folder.hasPasscode ? "Change Passcode" : "Set Passcode", systemImage: "lock")
                     }
                     if folder.hasPasscode {
-                        Button("Remove Passcode") { model.clearFolderPasscode(id: folder.id) }
+                        Button { model.clearFolderPasscode(id: folder.id) } label: {
+                            Label("Remove Passcode", systemImage: "lock.open")
+                        }
                     }
-                    Button("Rename") {
+                    Button {
                         renameFolderText = folder.name
                         renameFolderTarget = folder
+                    } label: {
+                        Label("Rename", systemImage: "pencil")
                     }
-                    Button("Delete", role: .destructive) { model.deleteFolder(id: folder.id) }
+                    Button(role: .destructive) { pendingFolderDelete = folder } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
                 }
                 if folder.id != model.folders.last?.id {
                     Divider().padding(.leading, 56)
@@ -394,10 +430,10 @@ struct VaultFilesView: View {
                     .frame(width: 52, height: 52)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.originalName)
+                    Text(item.type == .photo ? "Photo" : (item.type == .video ? "Video" : "File"))
                         .lineLimit(1)
                         .foregroundStyle(.primary)
-                    Text("\(ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file)) · \(item.importedAt.formatted(date: .abbreviated, time: .omitted))")
+                    Text(ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -414,27 +450,17 @@ struct VaultFilesView: View {
     }
 
     private var filterBar: some View {
-        VStack(spacing: 8) {
-            if model.folderID != nil {
-                HStack {
-                    Button("All Files") {
-                        withAnimation(.smooth(duration: 0.3)) { model.folderID = nil }
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
+        Picker("Show", selection: $model.filter) {
+            ForEach(VaultFileFilter.allCases) { filter in
+                Image(systemName: filter.symbol)
+                    .accessibilityLabel(filter.rawValue)
+                    .tag(filter)
             }
-            Picker("Filter", selection: $model.filter) {
-                ForEach(VaultFileFilter.allCases) { filter in
-                    Text("\(filter.rawValue) \(model.filterCounts[filter] ?? 0)").tag(filter)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 16)
-            .accessibilityLabel("File type")
         }
-        .padding(.vertical, 8)
+        .pickerStyle(.segmented)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
 
     private func cell(_ item: VaultItem) -> some View {
@@ -445,30 +471,27 @@ struct VaultFilesView: View {
                 viewer = item
             }
         } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                ZStack(alignment: .topTrailing) {
-                ThumbnailView(item: item, model: model)
-                    .frame(maxWidth: .infinity)
+            ZStack(alignment: .topTrailing) {
+                Color(.secondarySystemBackground)
                     .aspectRatio(1, contentMode: .fit)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                    if item.isFavorite {
-                        Image(systemName: "heart.fill")
-                            .font(.caption)
-                            .foregroundStyle(Theme.vault)
-                            .padding(6)
+                    .overlay {
+                        ThumbnailView(item: item, model: model)
+                            .scaledToFill()
                     }
-                    if model.isSelecting {
-                        Image(systemName: model.selection.contains(item.id) ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(Theme.vault)
-                            .padding(6)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    }
+                    .clipped()
+                if item.isFavorite {
+                    Image(systemName: "heart.fill")
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .shadow(radius: 2)
+                        .padding(6)
                 }
-                Text(item.originalName)
-                    .font(.caption)
-                    .lineLimit(1)
-                    .foregroundStyle(.primary)
+                if model.isSelecting {
+                    Image(systemName: model.selection.contains(item.id) ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(.white)
+                        .padding(6)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
             }
         }
         .buttonStyle(.plain)
@@ -478,24 +501,36 @@ struct VaultFilesView: View {
 
     @ViewBuilder
     private func itemMenu(_ item: VaultItem) -> some View {
-        Button(item.isFavorite ? "Unfavorite" : "Favorite") {
+        Button {
             model.setFavorite(ids: [item.id], favorite: !item.isFavorite)
+        } label: {
+            Label(item.isFavorite ? "Unfavorite" : "Favorite", systemImage: item.isFavorite ? "heart.slash" : "heart")
         }
-        Button("Rename") {
+        Button {
             renameTarget = item
             renameText = item.originalName
+        } label: {
+            Label("Rename", systemImage: "pencil")
         }
-        Menu("Move") {
+        Menu {
             Button("Files") { model.move(ids: [item.id], to: nil) }
             ForEach(model.folders) { folder in
                 Button(folder.name) { model.move(ids: [item.id], to: folder.id) }
             }
+        } label: {
+            Label("Move", systemImage: "folder")
         }
-        Button("Export") { beginExport(item, stripLocation: false) }
+        Button { beginExport(item, stripLocation: false) } label: {
+            Label("Export", systemImage: "square.and.arrow.up")
+        }
         if item.type == .photo {
-            Button("Export without location") { beginExport(item, stripLocation: true) }
+            Button { beginExport(item, stripLocation: true) } label: {
+                Label("Export without location", systemImage: "location.slash")
+            }
         }
-        Button("Delete", role: .destructive) { pendingDelete = item }
+        Button(role: .destructive) { pendingDelete = item } label: {
+            Label("Delete", systemImage: "trash")
+        }
     }
 
     @ToolbarContentBuilder
@@ -614,7 +649,7 @@ struct VaultFilesView: View {
     }
 }
 
-private struct ThumbnailView: View {
+struct ThumbnailView: View {
     let item: VaultItem
     @ObservedObject var model: VaultFilesViewModel
     @State private var image: UIImage?

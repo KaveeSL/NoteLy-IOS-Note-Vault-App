@@ -80,6 +80,16 @@ struct NotesSettingsView: View {
                     Text("NoteLy keeps your notes on this device and does not send note contents anywhere.")
                 }
             }
+
+            Section {
+                Text("© 2026 DK Technologies Inc.")
+                    .font(.footnote)
+                    .foregroundStyle(Color(.tertiaryLabel))
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
@@ -93,11 +103,12 @@ struct NotesSettingsView: View {
             }
             .tint(Theme.accent)
         }
-        .alert("Phrase", isPresented: $showingNotice) {
-            Button("OK", role: .cancel) {}
+        .alert("Phrase updated", isPresented: $showingNotice) {
+            Button("OK") {}
         } message: {
             Text(notice)
         }
+        .tint(Theme.accent)
         .onDisappear {
             versionTaps = 0
             lastVersionTap = nil
