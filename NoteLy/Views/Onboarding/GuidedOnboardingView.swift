@@ -68,19 +68,24 @@ struct GuidedOnboardingView: View {
             welcome
                 .frame(maxWidth: 520)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        } else if current == .passcode {
+            passcodeStep
+                .frame(maxWidth: 520)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 20)
+                .padding(.bottom, 4)
         } else {
             ScrollView {
                 Group {
                     switch current {
                     case .phrase: phraseStep
-                    case .passcode: passcodeStep
                     case .faceID: faceStep
                     default: phraseStep
                     }
                 }
                 .frame(maxWidth: 520, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 8)
+                .padding(.top, current == .phrase ? 36 : 12)
                 .padding(.bottom, 8)
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -370,53 +375,65 @@ struct GuidedOnboardingView: View {
     }
 
     private var passcodeStep: some View {
-        VStack(spacing: 0) {
-            Image(systemName: "lock")
-                .font(.system(size: 44, weight: .light))
-                .foregroundStyle(Theme.accent)
-                .padding(.top, 28)
-                .accessibilityHidden(true)
-            Text(editingConfirm ? "Type it again" : "Choose a 6-digit code")
-                .font(.system(size: 20, weight: .bold))
-                .multilineTextAlignment(.center)
-                .padding(.top, 28)
-                .accessibilityAddTraits(.isHeader)
-            if editingConfirm {
-                Text("Enter the same six digits to confirm.")
-                    .font(.system(size: 15))
-                    .foregroundStyle(.secondary)
+        GeometryReader { proxy in
+            let key = passcodeKeySize(width: proxy.size.width, height: proxy.size.height)
+            let gap: CGFloat = key < 58 ? 10 : 14
+            VStack(spacing: 0) {
+                Image(systemName: "lock")
+                    .font(.system(size: min(CGFloat(40), key * 0.62), weight: .light))
+                    .foregroundStyle(Theme.accent)
+                    .accessibilityHidden(true)
+                Text(editingConfirm ? "Type it again" : "Choose a 6-digit code")
+                    .font(.system(size: 20, weight: .bold))
                     .multilineTextAlignment(.center)
-                    .padding(.top, 8)
-                    .padding(.horizontal, 8)
-            } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    hintRow("lock", "Locks the hidden space after your phrase opens it.")
-                    hintRow("checkmark", "You'll type these six digits once more.")
-                }
-                .frame(maxWidth: 320)
-                .padding(.top, 16)
-            }
-            HStack(spacing: 18) {
-                ForEach(0..<6, id: \.self) { mark in
-                    Circle()
-                        .fill(mark < activePasscode.count ? Color.primary : Color.clear)
-                        .overlay(Circle().strokeBorder(Color.primary.opacity(0.35), lineWidth: mark < activePasscode.count ? 0 : 1.5))
-                        .frame(width: 16, height: 16)
-                }
-            }
-            .padding(.top, 28)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(activePasscode.count) of 6 digits")
-            digitPad
-                .padding(.top, 36)
-            if let problem = passcodeProblem {
-                Text(problem)
-                    .font(.subheadline)
-                    .multilineTextAlignment(.center)
+                    .padding(.top, 14)
+                    .accessibilityAddTraits(.isHeader)
+                if editingConfirm {
+                    Text("Enter the same six digits to confirm.")
+                        .font(.system(size: 15))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 8)
+                        .padding(.horizontal, 12)
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        hintRow("lock", "Locks the hidden space after your phrase opens it.")
+                        hintRow("checkmark", "You'll type these six digits once more.")
+                    }
+                    .frame(maxWidth: 320)
                     .padding(.top, 12)
+                }
+                Spacer(minLength: 10)
+                HStack(spacing: 18) {
+                    ForEach(0..<6, id: \.self) { mark in
+                        Circle()
+                            .fill(mark < activePasscode.count ? Color.primary : Color.clear)
+                            .overlay(Circle().strokeBorder(Color.primary.opacity(0.35), lineWidth: mark < activePasscode.count ? 0 : 1.5))
+                            .frame(width: 14, height: 14)
+                    }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(activePasscode.count) of 6 digits")
+                Spacer(minLength: 10)
+                digitPad(key: key, gap: gap)
+                if let problem = passcodeProblem {
+                    Text(problem)
+                        .font(.subheadline)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 8)
+                }
             }
+            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
         }
-        .frame(maxWidth: .infinity)
+    }
+
+    private func passcodeKeySize(width: CGFloat, height: CGFloat) -> CGFloat {
+        let hintBlock: CGFloat = editingConfirm ? 40 : 68
+        let fixed = 40 + 14 + 24 + 12 + hintBlock + 10 + 14 + 10
+        let padHeight = height - fixed
+        let fromHeight = (padHeight - 10 * 3) / 4
+        let fromWidth = (width - 12 * 2) / 3
+        return min(CGFloat(68), max(CGFloat(46), min(fromHeight, fromWidth)))
     }
 
     private var passcodeProblem: String? {
@@ -429,34 +446,36 @@ struct GuidedOnboardingView: View {
 
     private var activePasscode: String { editingConfirm ? passcodeConfirm : passcode }
 
-    private var digitPad: some View {
+    private func digitPad(key: CGFloat, gap: CGFloat) -> some View {
         glassGroup {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: 3), spacing: 14) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: gap), count: 3), spacing: gap) {
                 ForEach(1...9, id: \.self) { number in
-                    digit("\(number)")
+                    digit("\(number)", key: key)
                 }
                 Button(action: clearDigits) {
                     Image(systemName: "xmark")
-                        .font(.title3.weight(.semibold))
-                        .frame(width: 72, height: 72)
+                        .font(.system(size: key * 0.28, weight: .semibold))
+                        .frame(width: key, height: key)
                         .notesGlass(in: Circle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear")
-                digit("0")
+                digit("0", key: key)
                 Button(action: deleteDigit) {
                     Image(systemName: "delete.left")
-                        .font(.title3)
-                        .frame(width: 72, height: 72)
+                        .font(.system(size: key * 0.28))
+                        .frame(width: key, height: key)
                         .notesGlass(in: Circle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Delete")
             }
         }
+        .frame(maxWidth: key * 3 + gap * 2)
+        .frame(maxWidth: .infinity)
     }
 
-    private func digit(_ label: String) -> some View {
+    private func digit(_ label: String, key: CGFloat) -> some View {
         Button {
             guard activePasscode.count < 6 else { return }
             let next = activePasscode + label
@@ -467,8 +486,8 @@ struct GuidedOnboardingView: View {
             }
         } label: {
             Text(label)
-                .font(.title2.weight(.medium))
-                .frame(width: 72, height: 72)
+                .font(.system(size: key * 0.38, weight: .medium))
+                .frame(width: key, height: key)
                 .notesGlass(in: Circle())
         }
         .buttonStyle(.plain)
