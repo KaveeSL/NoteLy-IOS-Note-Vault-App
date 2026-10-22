@@ -65,6 +65,8 @@
   .screen { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
   .screen > div:not(.sheet):not(.redirect) { flex: 1; min-height: 0; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
   .scroll { flex: 1; overflow: auto; min-height: 0; }
+  .slide-forward { animation: page-push 0.38s cubic-bezier(0.32, 0.72, 0, 1); }
+  @keyframes page-push { from { transform: translateX(100%); } to { transform: translateX(0); } }
   .scroll:has(.splash) { display: flex; flex-direction: column; overflow: hidden; }
   .nav { display: flex; align-items: center; justify-content: space-between; padding: 2px 16px 6px; gap: 8px; }
   .nav h1 { margin: 0; font-size: 34px; letter-spacing: -0.6px; font-weight: 750; }
@@ -429,7 +431,7 @@ function column(title, leading, trailing) {
 
 function onboard() {
   const screen = el("div");
-  const wrap = el("div", "scroll");
+  const wrap = el("div", state.slide === "forward" ? "scroll slide-forward" : "scroll");
   const boxClass = state.page === 0 ? "splash" : state.page === 1 ? "pad phrase-pad" : state.page === 2 ? "code-fixed" : "pad";
   const box = el("div", boxClass);
   if (state.page === 0) {
@@ -544,7 +546,9 @@ function advanceSetup(box) {
     return;
   }
   state.page += 1;
+  state.slide = "forward";
   render();
+  state.slide = "";
 }
 
 function hint(symbol, text) {

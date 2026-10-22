@@ -15,7 +15,7 @@ struct GuidedOnboardingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var index = 0
+    @State private var path: [OnboardingStep] = []
     @State private var phrase = ""
     @State private var phraseConfirm = ""
     @State private var showPhrase = false
@@ -32,25 +32,22 @@ struct GuidedOnboardingView: View {
         return [.welcome, .phrase, .passcode, .faceID]
     }
 
+    private var index: Int { min(path.count, flow.count - 1) }
+
     private var current: OnboardingStep {
-        flow[min(index, flow.count - 1)]
+        flow[index]
     }
 
     var body: some View {
-        content
-            .padding(.horizontal, current == .welcome ? 0 : 28)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                controls
-                    .padding(.horizontal, 32)
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
-                    .background(Color(.systemBackground))
-            }
-            .background(Color(.systemBackground))
-            .tint(Theme.accent)
+        NavigationStack(path: $path) {
+            setupPage(.welcome)
+                .navigationDestination(for: OnboardingStep.self) { step in
+                    setupPage(step)
+                }
+        }
+        .tint(Theme.accent)
         .onAppear(perform: restore)
-        .onChange(of: index) { _, _ in
+        .onChange(of: path) { _, _ in
             inlineError = nil
             let secret = current == .phrase || current == .passcode
             appState.hidingSecrets = secret && mode != .replay
@@ -62,13 +59,29 @@ struct GuidedOnboardingView: View {
         .onDisappear { appState.hidingSecrets = false }
     }
 
+    private func setupPage(_ step: OnboardingStep) -> some View {
+        setupContent(step)
+            .padding(.horizontal, step == .welcome ? 0 : 28)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                setupControls(step)
+                    .padding(.horizontal, 32)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    .background(Color(.systemBackground))
+            }
+            .background(Color(.systemBackground))
+            .navigationBarBackButtonHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
+    }
+
     @ViewBuilder
-    private var content: some View {
-        if current == .welcome {
+    private func setupContent(_ step: OnboardingStep) -> some View {
+        if step == .welcome {
             welcome
                 .frame(maxWidth: 520)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        } else if current == .passcode {
+        } else if step == .passcode {
             passcodeStep
                 .frame(maxWidth: 520)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -77,7 +90,7 @@ struct GuidedOnboardingView: View {
         } else {
             ScrollView {
                 Group {
-                    switch current {
+                    switch step {
                     case .phrase: phraseStep
                     case .faceID: faceStep
                     default: phraseStep
@@ -85,34 +98,35 @@ struct GuidedOnboardingView: View {
                 }
                 .frame(maxWidth: 520, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, current == .phrase ? 36 : 12)
+                .padding(.top, step == .phrase ? 36 : 12)
                 .padding(.bottom, 8)
             }
             .scrollBounceBehavior(.basedOnSize)
         }
     }
 
-    private var controls: some View {
-        VStack(spacing: 10) {
+    private func setupControls(_ step: OnboardingStep) -> some View {
+        let stepIndex = flow.firstIndex(of: step) ?? 0
+        return VStack(spacing: 10) {
             Button {
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                 continueForward()
             } label: {
-                Text(continueTitle)
+                Text(continueTitle(stepIndex))
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(current == .welcome ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                    .foregroundStyle(step == .welcome ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: current == .welcome ? 52 : nil)
+                    .frame(minHeight: step == .welcome ? 52 : nil)
             }
             .prominentGlassButton()
             .buttonBorderShape(.capsule)
-            .controlSize(current == .welcome ? .extraLarge : .large)
+            .controlSize(step == .welcome ? .extraLarge : .large)
             .frame(maxWidth: .infinity)
-            .opacity((!canContinue || working) ? 0.4 : 1)
-            .disabled(!canContinue || working)
-            .accessibilityHint(index == flow.count - 1 ? "Finishes setup" : "Goes to the next step")
+            .opacity((!canContinue(step) || working) ? 0.4 : 1)
+            .disabled(!canContinue(step) || working)
+            .accessibilityHint(stepIndex == flow.count - 1 ? "Finishes setup" : "Goes to the next step")
             .accessibilityIdentifier("onboarding.continue")
-            if index > 0 {
+            if stepIndex > 0 {
                 Button("Back", action: goBack)
                     .font(.body)
                     .foregroundStyle(.secondary)
@@ -120,7 +134,7 @@ struct GuidedOnboardingView: View {
                     .accessibilityHint("Returns to the previous step")
                     .accessibilityIdentifier("onboarding.back")
             }
-            if let inlineError {
+            if step == current, let inlineError {
                 Text(inlineError)
                     .font(.subheadline)
                     .foregroundStyle(.primary)
@@ -131,18 +145,18 @@ struct GuidedOnboardingView: View {
         .padding(.bottom, 8)
     }
 
-    private var continueTitle: String {
+    private func continueTitle(_ stepIndex: Int) -> String {
         if mode == .replay { return "Done" }
-        if index == flow.count - 1 {
+        if stepIndex == flow.count - 1 {
             return mode == .redo ? "Save" : "Start using the app"
         }
-        if index == 0 { return "Get Started" }
+        if stepIndex == 0 { return "Get Started" }
         return "Continue"
     }
 
-    private var canContinue: Bool {
+    private func canContinue(_ step: OnboardingStep) -> Bool {
         if mode == .replay { return true }
-        switch current {
+        switch step {
         case .welcome, .faceID: return true
         case .phrase: return phraseReady
         case .passcode: return passcodeReady
@@ -164,10 +178,14 @@ struct GuidedOnboardingView: View {
     private func restore() {
         faceID = appState.biometricsAvailable()
         let saved = appState.onboardingStore.load().step
-        if mode == .firstLaunch, let match = flow.firstIndex(where: { $0.rawValue == saved }) {
-            index = match
-        } else {
-            index = 0
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            if mode == .firstLaunch, let match = flow.firstIndex(where: { $0.rawValue == saved }), match > 0 {
+                path = Array(flow.dropFirst().prefix(match))
+            } else {
+                path = []
+            }
         }
     }
 
@@ -184,15 +202,26 @@ struct GuidedOnboardingView: View {
     }
 
     private func advance() {
-        withAnimation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.35, dampingFraction: 0.86)) {
-            index = min(index + 1, flow.count - 1)
+        let next = index + 1
+        guard next < flow.count else { return }
+        if reduceMotion {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { path.append(flow[next]) }
+        } else {
+            path.append(flow[next])
         }
     }
 
     private func goBack() {
-        withAnimation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.35, dampingFraction: 0.86)) {
-            if current == .passcode { editingConfirm = false }
-            index = max(index - 1, 0)
+        if current == .passcode { editingConfirm = false }
+        guard !path.isEmpty else { return }
+        if reduceMotion {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { path.removeLast() }
+        } else {
+            path.removeLast()
         }
     }
 
