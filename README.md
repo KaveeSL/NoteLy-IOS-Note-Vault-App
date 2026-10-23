@@ -44,7 +44,7 @@ Type the phrase into Search and submit it, then confirm with Face ID or the 6-di
 | --- | --- |
 | ![Private note](screenshots/11-private-note.png) | ![Files with folders and photos](screenshots/12-files.png) |
 
-All shows folders and photos together. Photos, Videos, and Files show matching items from every folder and hide the folder list. Trip holds one photo. Receipts is empty.
+All shows folders and photos together. Photos, Videos, and Files show matching items from every folder and hide the folder list. The sample photos are real scenes, about 6,000 to 6,700 pixels wide: a harbor, a cabin window, and a sunset. Trip holds the sunset. Receipts is empty.
 
 | Inside Trip | Add: Move or Copy |
 | --- | --- |

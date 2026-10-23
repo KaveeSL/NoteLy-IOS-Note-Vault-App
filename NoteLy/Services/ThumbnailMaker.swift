@@ -6,6 +6,10 @@ import UIKit
 import UniformTypeIdentifiers
 
 enum ThumbnailMaker {
+    static func photoThumbnail(from url: URL) -> Data? {
+        imageThumbnail(url)
+    }
+
     static func jpeg(from url: URL, type: VaultMediaType) async -> Data? {
         switch type {
         case .photo:

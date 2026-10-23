@@ -331,24 +331,24 @@ struct VaultFilesView: View {
     }
 
     private func folderLink(_ folder: VaultFolder) -> some View {
-        Button {
-            open(folder)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: folder.isPinned ? "pin.fill" : (folder.hasPasscode ? "lock.fill" : "folder.fill"))
-                    .foregroundStyle(folder.isPinned ? Theme.accent : Theme.vault)
-                    .frame(width: 28)
-                Text(folder.name)
-                    .foregroundStyle(Color(.label))
-                Spacer()
-                Text("\(model.itemCount(in: folder.id))")
-                    .foregroundStyle(Color(.secondaryLabel))
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
+        HStack(spacing: 12) {
+            Image(systemName: folder.isPinned ? "pin.fill" : (folder.hasPasscode ? "lock.fill" : "folder.fill"))
+                .foregroundStyle(folder.isPinned ? Theme.accent : Theme.vault)
+                .frame(width: 28)
+            Text(folder.name)
+                .foregroundStyle(Color(.label))
+            Spacer()
+            Text("\(model.itemCount(in: folder.id))")
+                .foregroundStyle(Color(.secondaryLabel))
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
         }
-        .buttonStyle(RowButtonStyle())
+        .contentShape(Rectangle())
+        .onTapGesture { open(folder) }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("\(folder.name), \(model.itemCount(in: folder.id))")
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) { pendingFolderDelete = folder } label: {
                 Label("Delete", systemImage: "trash")
