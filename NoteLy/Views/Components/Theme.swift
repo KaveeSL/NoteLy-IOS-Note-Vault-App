@@ -49,12 +49,11 @@ struct PlainTextBox: View {
             Text(title)
                 .font(.system(size: 17))
                 .foregroundStyle(Color(.secondaryLabel))
-            field
+            protectedField
                 .tint(Theme.accent)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .textContentType(.none)
-                .privacySensitive()
                 .padding(.horizontal, 20)
                 .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
                 .background(Theme.fieldFill, in: Capsule())
@@ -70,6 +69,19 @@ struct PlainTextBox: View {
         } else {
             TextField("", text: $text)
         }
+    }
+
+    @ViewBuilder
+    private var protectedField: some View {
+        #if DEBUG
+        if UITestHooks.showFilledPhrase {
+            field
+        } else {
+            field.privacySensitive()
+        }
+        #else
+        field.privacySensitive()
+        #endif
     }
 }
 

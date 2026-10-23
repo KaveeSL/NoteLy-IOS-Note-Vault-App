@@ -110,6 +110,20 @@ struct NotesSettingsView: View {
             Text(notice)
         }
         .tint(Theme.accent)
+        .onAppear {
+            #if DEBUG
+            if UITestHooks.showFilledPhrase {
+                needsCode = false
+                showPhrase = true
+                showingChange = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    showPhrase = true
+                    newPhrase = "bright-harbor"
+                    phraseConfirm = "bright-harbor"
+                }
+            }
+            #endif
+        }
         .onDisappear {
             versionTaps = 0
             lastVersionTap = nil

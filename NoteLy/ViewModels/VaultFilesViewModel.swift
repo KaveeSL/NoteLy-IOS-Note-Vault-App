@@ -967,15 +967,23 @@ extension VaultFilesViewModel {
     func seedGuideSamples() {
         guard let master = session.key else { return }
         let trip = VaultFolder(name: "Trip")
-        let receipts = VaultFolder(name: "Receipts")
-        folders = [trip, receipts]
+        let coast = VaultFolder(name: "Coast")
+        let mountains = VaultFolder(name: "Mountains")
+        folders = [trip, coast, mountains]
         library = .empty
         library.folders = folders
         items = []
         let specs: [(String, UUID?)] = [
             ("Harbor.jpg", nil),
             ("Window.jpg", nil),
-            ("Sunset.jpg", trip.id)
+            ("Bridge.jpg", nil),
+            ("Sunset.jpg", trip.id),
+            ("Forest.jpg", trip.id),
+            ("Meadow.jpg", trip.id),
+            ("Coast.jpg", coast.id),
+            ("Quay.jpg", coast.id),
+            ("Lake.jpg", mountains.id),
+            ("Canyon.jpg", mountains.id)
         ]
         for spec in specs {
             guard let bundled = Self.guidePhotoURL(spec.0) else { continue }

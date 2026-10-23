@@ -22,7 +22,7 @@ Get Started, then a phrase you type twice, a 6-digit code, and optional Face ID.
 
 ### Notes
 
-Folders hold everyday notes. Search and the new-note button sit at the bottom. Settings is the gear.
+Folders hold everyday notes. The sample has three notes in Notes, two in Personal, and two in Work. Search and the new-note button sit at the bottom. Settings is the gear.
 
 | Folders | Settings |
 | --- | --- |
@@ -34,7 +34,7 @@ Folders hold everyday notes. Search and the new-note button sit at the bottom. S
 
 ### Hidden space
 
-Type the phrase into Search and submit it, then confirm with Face ID or the 6-digit code. The hidden folders use a red accent. Lock is the button at the top left. Files keeps photos, videos, and documents on this iPhone, with filters for all, photos, videos, and files.
+Type the phrase into Search and submit it, then confirm with Face ID or the 6-digit code. The hidden folders use a red accent. Lock is the button at the top left. The sample has seven private notes. Files keeps photos, videos, and documents on this iPhone, with filters for all, photos, videos, and files.
 
 | Hidden Folders | Private notes |
 | --- | --- |
@@ -44,7 +44,7 @@ Type the phrase into Search and submit it, then confirm with Face ID or the 6-di
 | --- | --- |
 | ![Private note](screenshots/11-private-note.png) | ![Files with folders and photos](screenshots/12-files.png) |
 
-All shows folders and photos together. Photos, Videos, and Files show matching items from every folder and hide the folder list. The sample photos are real scenes, about 6,000 to 6,700 pixels wide: a harbor, a cabin window, and a sunset. Trip holds the sunset. Receipts is empty.
+All shows folders and photos together. Photos, Videos, and Files show matching items from every folder and hide the folder list. There are ten real photos, about 6,000 to 6,700 pixels wide. Coast and Mountains each hold two. Trip holds a meadow, a forest, and a sunset. Harbor, the cabin window, and the bridge stay in Files.
 
 | Inside Trip | Add: Move or Copy |
 | --- | --- |
@@ -58,7 +58,7 @@ Press and hold a photo to lift it and open its menu.
 | --- |
 | ![Photo menu](screenshots/20-photo-menu.png) |
 
-**Favorite** stars the photo. **Rename** changes its name. **Move** puts it in Files or in a folder such as Trip or Receipts. That is separate from the Move button used when adding a file. **Export** shares a copy, and that copy leaves the vault. **Export without location** shares a photo copy with the location removed. The saved photo keeps its location. **Delete** moves it to Recently Deleted.
+**Favorite** stars the photo. **Rename** changes its name. **Move** puts it in Files or in a folder such as Trip, Coast, or Mountains. That is separate from the Move button used when adding a file. **Export** shares a copy, and that copy leaves the vault. **Export without location** shares a photo copy with the location removed. The saved photo keeps its location. **Delete** moves it to Recently Deleted.
 
 The gear inside Hidden Folders opens Private Settings. The page continues below the first screen.
 
@@ -78,7 +78,11 @@ The gear inside Hidden Folders opens Private Settings. The page continues below 
 
 **Change passcode** asks Face ID first. When Face ID is off, it asks for the 6-digit code, then the current code and the new one.
 
-**Change phrase** asks Face ID when it is on, otherwise the 6-digit code. There is no recovery if the new phrase is forgotten.
+**Change phrase** asks Face ID when it is on, otherwise the 6-digit code. There is no recovery if the new phrase is forgotten. The screen below has an example typed in so the fields are not empty. It is not a phrase saved on a phone.
+
+| New phrase |
+| --- |
+| ![New phrase with an example](screenshots/25-phrase.png) |
 
 **Set a second phrase** opens a separate set of ordinary sample notes. It does not open these notes, and it does not ask for Face ID. Use a phrase you will not mix up with this one.
 

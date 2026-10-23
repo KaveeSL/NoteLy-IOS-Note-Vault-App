@@ -76,16 +76,16 @@ final class GuideScreenshotUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.staticTexts["Hidden Folders"].waitForExistence(timeout: 40))
-        XCTAssertTrue(app.staticTexts["3"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["10"].waitForExistence(timeout: 8))
         snap("09-vault")
 
         app.staticTexts["Files"].firstMatch.tap()
-        XCTAssertTrue(app.buttons["Trip, 1"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["Trip, 3"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.buttons["Harbor.jpg"].waitForExistence(timeout: 8))
         sleep(1)
         snap("12-files")
 
-        app.buttons["Trip, 1"].tap()
+        app.buttons["Trip, 3"].tap()
         XCTAssertTrue(app.buttons["Sunset.jpg"].waitForExistence(timeout: 8))
         sleep(1)
         snap("12-trip")
@@ -150,6 +150,117 @@ final class GuideScreenshotUITests: XCTestCase {
         sleep(1)
         snap("dark-files")
         XCUIDevice.shared.appearance = .light
+    }
+
+    func testCaptureFilledGuide() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-ui-testing",
+            "-ui-testing-skip-onboarding",
+            "-ui-testing-seed-notes"
+        ]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Folders"].waitForExistence(timeout: 12))
+        XCTAssertTrue(app.staticTexts["Personal"].waitForExistence(timeout: 6))
+        sleep(1)
+        snap("filled-folders")
+        app.staticTexts["Notes"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Grocery list"].waitForExistence(timeout: 6))
+        sleep(1)
+        snap("filled-notes")
+        app.staticTexts["Grocery list"].tap()
+        sleep(1)
+        snap("filled-note")
+
+        app.terminate()
+        app.launchArguments = [
+            "-ui-testing",
+            "-ui-testing-skip-onboarding",
+            "-ui-testing-open-vault"
+        ]
+        app.launchEnvironment = ["NOTELY_UITEST_PHRASE": "harbor-lantern"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Hidden Folders"].waitForExistence(timeout: 90))
+        XCTAssertTrue(app.staticTexts["10"].waitForExistence(timeout: 8))
+        sleep(1)
+        snap("filled-hidden")
+        app.staticTexts["Notes"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Travel plans"].waitForExistence(timeout: 8))
+        sleep(1)
+        snap("filled-private-notes")
+        app.staticTexts["Travel plans"].tap()
+        sleep(1)
+        snap("filled-private-note")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.staticTexts["Files"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["Harbor.jpg"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Trip, 3"].waitForExistence(timeout: 6))
+        sleep(1)
+        snap("filled-files")
+        app.buttons["Trip, 3"].tap()
+        XCTAssertTrue(app.buttons["Sunset.jpg"].waitForExistence(timeout: 8))
+        sleep(1)
+        snap("filled-trip")
+
+        XCUIDevice.shared.appearance = .dark
+        sleep(1)
+        app.navigationBars["Trip"].buttons["Files"].tap()
+        XCTAssertTrue(app.buttons["Harbor.jpg"].waitForExistence(timeout: 6))
+        sleep(1)
+        snap("filled-dark-files")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        sleep(1)
+        snap("filled-dark-hidden")
+
+        app.terminate()
+        XCUIDevice.shared.appearance = .dark
+        app.launchArguments = [
+            "-ui-testing",
+            "-ui-testing-skip-onboarding",
+            "-ui-testing-seed-notes"
+        ]
+        app.launchEnvironment = [:]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Folders"].waitForExistence(timeout: 12))
+        sleep(1)
+        snap("filled-dark-folders")
+        app.staticTexts["Notes"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Grocery list"].waitForExistence(timeout: 6))
+        sleep(1)
+        snap("filled-dark-notes")
+
+        app.terminate()
+        XCUIDevice.shared.appearance = .light
+        app.launchArguments = [
+            "-ui-testing",
+            "-ui-testing-skip-onboarding",
+            "-ui-testing-show-phrase"
+        ]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Folders"].waitForExistence(timeout: 12))
+        app.buttons["Settings"].tap()
+        XCTAssertTrue(app.navigationBars["New phrase"].waitForExistence(timeout: 8))
+        sleep(1)
+        snap("filled-phrase")
+        XCUIDevice.shared.appearance = .light
+    }
+
+    func testCapturePhraseFilled() {
+        XCUIDevice.shared.appearance = .light
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-ui-testing",
+            "-ui-testing-skip-onboarding",
+            "-ui-testing-show-phrase"
+        ]
+        app.launch()
+        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 12))
+        app.buttons["Settings"].tap()
+        XCTAssertTrue(app.navigationBars["New phrase"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Strength: OK"].waitForExistence(timeout: 6))
+        sleep(1)
+        snap("filled-phrase")
     }
 
     private func snap(_ name: String) {

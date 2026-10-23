@@ -873,13 +873,8 @@ final class AppState: ObservableObject {
     /// can open the private area after typing that phrase.
     private func prepareUITests() {
         if UITestHooks.openVault {
-            try? vaultStore.deleteAll()
             let key = crypto.generateKey()
-            try? vaultStore.save(
-                VaultNote(title: "Travel plans", body: "Pack a jacket."),
-                using: key
-            )
-            session.install(key)
+            try? seedGuideVaultNotes(using: key)
         }
         guard let phrase = UITestHooks.phrase else { return }
         guard let phrases = phrases as? SecretPhraseService else { return }
@@ -896,12 +891,7 @@ final class AppState: ObservableObject {
                 protection: .afterFirstUnlockThisDeviceOnly
             )
             if UITestHooks.openVault {
-                try vaultStore.deleteAll()
-                try vaultStore.save(
-                    VaultNote(title: "Travel plans", body: "Pack a jacket."),
-                    using: key
-                )
-                session.install(key)
+                try seedGuideVaultNotes(using: key)
             }
         } catch {
             VaultLog.security.error("UI test vault setup failed")
@@ -914,11 +904,61 @@ final class AppState: ObservableObject {
 
     private static var didSeedNotes = false
 
+    func seedGuideVaultNotes(using key: SymmetricKey) throws {
+        try vaultStore.deleteAll()
+        let samples = [
+            ("Travel plans", "Pack a jacket for the ridge."),
+            ("Cabin stay", "The window looks over the snow."),
+            ("Train times", "Leave after breakfast."),
+            ("Restaurant", "Ask for a table by the water."),
+            ("Packing list", "Boots, a map, and a light."),
+            ("Addresses", "Keep these off the other notes."),
+            ("Flight note", "A window seat if one is open.")
+        ]
+        for (index, sample) in samples.enumerated() {
+            let note = VaultNote(
+                title: sample.0,
+                body: sample.1,
+                updatedAt: Date().addingTimeInterval(TimeInterval(-index * 3600))
+            )
+            try vaultStore.save(note, using: key)
+        }
+        session.install(key)
+    }
+
     func seedUITestNotesIfNeeded(context: ModelContext, existingCount: Int) {
-        guard UITestHooks.seedNotes, existingCount == 0, !Self.didSeedNotes else { return }
+        guard UITestHooks.seedNotes, !Self.didSeedNotes else { return }
         Self.didSeedNotes = true
-        let note = Note(title: "Grocery list", body: "Milk and bread", colorTag: "green")
-        context.insert(note)
+        if let existing = try? context.fetch(FetchDescriptor<Note>()) {
+            existing.forEach { context.delete($0) }
+        }
+        if let folders = try? context.fetch(FetchDescriptor<NoteFolder>()) {
+            folders.filter { $0.kind == .custom }.forEach { context.delete($0) }
+        }
+        let personal = NoteFolder(name: "Personal", sortOrder: 2, kind: .custom)
+        let work = NoteFolder(name: "Work", sortOrder: 3, kind: .custom)
+        context.insert(personal)
+        context.insert(work)
+        let rows: [(String, String, String?, NoteFolder?)] = [
+            ("Grocery list", "Milk, bread, and apples.", "green", nil),
+            ("Weekend hike", "The trail starts at the ridge.", nil, nil),
+            ("Dinner idea", "Tomato pasta and a green salad.", "orange", nil),
+            ("Reading list", "Finish the chapter on the train.", nil, personal),
+            ("Gift idea", "A small framed photo from the trip.", nil, personal),
+            ("Meeting notes", "Review the draft on Monday morning.", "blue", work),
+            ("Call list", "Ask about the Thursday time.", nil, work)
+        ]
+        for (offset, row) in rows.enumerated() {
+            let note = Note(
+                title: row.0,
+                body: row.1,
+                updatedAt: Date().addingTimeInterval(TimeInterval(-offset * 1800)),
+                colorTag: row.2
+            )
+            note.folder = row.3
+            note.plainText = "\(row.0)\n\(row.1)"
+            context.insert(note)
+        }
         try? context.save()
     }
     #endif
@@ -953,6 +993,11 @@ enum UITestHooks {
     /// Opens the private area on launch so a UI test can photograph it.
     static var openVault: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains("-ui-testing-open-vault")
+    }
+
+    /// Opens Settings on the phrase form with an example phrase already typed.
+    static var showFilledPhrase: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains("-ui-testing-show-phrase")
     }
 
     /// Supplied by the UI test process. Empty unless `-ui-testing` is also set.
