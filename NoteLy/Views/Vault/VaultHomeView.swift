@@ -54,12 +54,15 @@ struct VaultHomeView: View {
                     NavigationLink(value: "notes") {
                         vaultFolder(name: "Notes", symbol: "folder.fill", count: model.notes.filter { $0.deletedAt == nil }.count)
                     }
+                    .buttonStyle(RowButtonStyle())
                     NavigationLink(value: "files") {
                         vaultFolder(name: "Files", symbol: "folder.fill", count: files.keptItemCount)
                     }
+                    .buttonStyle(RowButtonStyle())
                     NavigationLink(value: "trash") {
                         vaultFolder(name: "Recently Deleted", symbol: "trash", count: deletedCount)
                     }
+                    .buttonStyle(RowButtonStyle())
                     .deleteDisabled(true)
                     .moveDisabled(true)
                 }
@@ -155,6 +158,7 @@ struct VaultHomeView: View {
                             NavigationLink(value: note.id) {
                                 VaultNoteRow(note: note)
                             }
+                            .buttonStyle(RowButtonStyle())
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
                                     pendingNote = note
@@ -227,9 +231,10 @@ struct VaultHomeView: View {
                 .foregroundStyle(Theme.vault)
                 .frame(width: 28)
             Text(name)
+                .foregroundStyle(Color(.label))
             Spacer()
             Text("\(count)")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color(.secondaryLabel))
         }
         .padding(.vertical, 4)
     }
@@ -525,9 +530,10 @@ private struct VaultTrashView: View {
                 .foregroundStyle(Theme.vault)
                 .frame(width: 28)
             Text(name)
+                .foregroundStyle(Color(.label))
             Spacer()
             Text("\(count)")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color(.secondaryLabel))
         }
     }
 
@@ -548,6 +554,7 @@ private struct VaultNoteRow: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
                     .font(.body.weight(.semibold))
+                    .foregroundStyle(Color(.label))
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 Text(note.updatedAt.formatted(date: .omitted, time: .shortened))

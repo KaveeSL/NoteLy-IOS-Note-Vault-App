@@ -292,7 +292,7 @@ struct NotesListView: View {
             } label: {
                 folderLabel(folder, count: count)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(RowButtonStyle())
             .folderSlideActions(folder: folder, share: { shareFolder(folder) }, move: { folderToMove = folder }, delete: { pendingFolder = folder })
             .contextMenu { folderMenu(folder) }
             .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -307,7 +307,7 @@ struct NotesListView: View {
                         .foregroundStyle(.tertiary)
                 }
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(RowButtonStyle())
             .folderSlideActions(folder: folder, share: { shareFolder(folder) }, move: { folderToMove = folder }, delete: { pendingFolder = folder })
             .contextMenu { folderMenu(folder) }
             .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -346,11 +346,11 @@ struct NotesListView: View {
                 .frame(width: 28)
                 .accessibilityHidden(true)
             Text(name)
-                .foregroundStyle(.primary)
+                .foregroundStyle(Color(.label))
             Spacer()
             if let count {
                 Text("\(count)")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(.secondaryLabel))
             }
         }
         .padding(.vertical, 4)
@@ -879,8 +879,8 @@ struct NotesStyleSearchBar: View {
                 Image(systemName: "square.and.pencil")
                     .font(.system(size: 20))
                     .frame(width: 44, height: 44)
-                    .background(Color(.systemBackground), in: Circle())
-                    .overlay(Circle().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
+                    .background(Theme.fieldFill, in: Circle())
+                    .overlay(Circle().stroke(Theme.fieldStroke, lineWidth: 0.5))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("New note")
@@ -908,8 +908,8 @@ private struct NotesBottomBar: View {
                     Image(systemName: "square.and.pencil")
                         .font(.system(size: 20, weight: .regular))
                         .frame(width: 44, height: 44)
-                        .background(Color(.systemBackground), in: Circle())
-                        .overlay(Circle().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
+                        .background(Theme.fieldFill, in: Circle())
+                        .overlay(Circle().stroke(Theme.fieldStroke, lineWidth: 0.5))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("New note")

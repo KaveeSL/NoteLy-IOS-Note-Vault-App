@@ -14,6 +14,7 @@ struct GuidedOnboardingView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var path: [OnboardingStep] = []
     @State private var phrase = ""
@@ -114,7 +115,7 @@ struct GuidedOnboardingView: View {
             } label: {
                 Text(continueTitle(stepIndex))
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(step == .welcome ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                    .foregroundStyle(step == .welcome ? AnyShapeStyle(Theme.onAccent(colorScheme)) : AnyShapeStyle(.primary))
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: step == .welcome ? 52 : nil)
             }

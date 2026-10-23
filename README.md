@@ -104,6 +104,18 @@ The gear inside Hidden Folders opens Private Settings. The page continues below 
 | --- |
 | ![Face ID Diagnostics and version](screenshots/17-private-settings-end.png) |
 
+### Dark theme
+
+NoteLy follows the iPhone appearance. Dark mode keeps the same layout. Folder names, note titles, and counts stay white or gray, so a row is easy to read. Yellow is only the notes accent: folder icons, dates, and buttons. The hidden space stays red on the icons and controls, with white names. Search and the new-note button use a raised gray field, so they stay visible on the black page. A note saved in light mode still shows its text when the phone is dark.
+
+| Folders | Notes |
+| --- | --- |
+| ![Folders in dark mode](screenshots/21-dark-folders.png) | ![Notes in dark mode](screenshots/22-dark-notes.png) |
+
+| Hidden Folders | Files |
+| --- | --- |
+| ![Hidden Folders in dark mode](screenshots/23-dark-hidden.png) | ![Files in dark mode](screenshots/24-dark-files.png) |
+
 ## Requirements
 
 - Xcode 16 or newer

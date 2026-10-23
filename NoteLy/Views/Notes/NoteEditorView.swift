@@ -10,6 +10,7 @@ struct NoteEditorView: View {
     @Bindable var note: Note
     var folders: [NoteFolder] = []
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
     @Query(sort: \Note.updatedAt, order: .reverse) private var allNotes: [Note]
@@ -300,7 +301,7 @@ struct NoteEditorView: View {
             Button(action: finishEditing) {
                 Image(systemName: "checkmark")
                     .font(.body.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.onAccent(colorScheme))
                     .frame(width: 32, height: 32)
                     .background(Theme.accent, in: Circle())
             }
@@ -648,13 +649,36 @@ final class RichTextController: ObservableObject {
     }
 
     static func archive(_ attributed: NSAttributedString) -> Data? {
-        let type: NSAttributedString.DocumentType = attributed.containsAttachments
+        let stored = recolor(attributed, matching: isDefaultInk, to: .black)
+        let type: NSAttributedString.DocumentType = stored.containsAttachments
             ? .rtfd
             : .rtf
-        return try? attributed.data(
-            from: NSRange(location: 0, length: attributed.length),
+        return try? stored.data(
+            from: NSRange(location: 0, length: stored.length),
             documentAttributes: [.documentType: type]
         )
+    }
+
+    /// Saved notes store default text as black. Show that as the system label so it stays readable in dark mode.
+    private static func recolor(_ text: NSAttributedString, matching: (UIColor) -> Bool, to color: UIColor) -> NSAttributedString {
+        let result = NSMutableAttributedString(attributedString: text)
+        result.enumerateAttribute(.foregroundColor, in: NSRange(location: 0, length: result.length)) { value, range, _ in
+            let current = (value as? UIColor) ?? .black
+            if matching(current) {
+                result.addAttribute(.foregroundColor, value: color, range: range)
+            }
+        }
+        return result
+    }
+
+    private static func isDefaultInk(_ color: UIColor) -> Bool {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        let resolved = color.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
+        guard resolved.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return false }
+        return alpha > 0.9 && red < 0.08 && green < 0.08 && blue < 0.08
     }
 
     static func unarchive(_ data: Data) -> NSAttributedString? {
@@ -665,21 +689,25 @@ final class RichTextController: ObservableObject {
                 options: [.documentType: NSAttributedString.DocumentType.rtf],
                 documentAttributes: nil
             ) else { return nil }
-            return wrapImages(loaded)
+            return readableInk(wrapImages(loaded))
         }
         if let loaded = try? NSAttributedString(
             data: data,
             options: [.documentType: NSAttributedString.DocumentType.rtfd],
             documentAttributes: nil
         ) {
-            return wrapImages(loaded)
+            return readableInk(wrapImages(loaded))
         }
         guard let loaded = try? NSAttributedString(
             data: data,
             options: [.documentType: NSAttributedString.DocumentType.rtf],
             documentAttributes: nil
         ) else { return nil }
-        return wrapImages(loaded)
+        return readableInk(wrapImages(loaded))
+    }
+
+    private static func readableInk(_ text: NSAttributedString) -> NSAttributedString {
+        recolor(text, matching: isDefaultInk, to: .label)
     }
 
     /// Restored files come back as plain attachments. Wrap them so they stay the width of the text.
@@ -718,6 +746,7 @@ struct RichTextView: UIViewRepresentable {
         view.delegate = context.coordinator
         view.font = UIFont.preferredFont(forTextStyle: .body)
         view.backgroundColor = .clear
+        view.textColor = .label
         view.tintColor = UIColor(Theme.accent)
         view.alwaysBounceVertical = true
         view.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 24, right: 16)

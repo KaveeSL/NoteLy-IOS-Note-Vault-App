@@ -12,7 +12,7 @@ struct NoteRowView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(highlighted(displayTitle))
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color(.label))
                         .lineLimit(1)
                     Spacer(minLength: 8)
                     if note.isPinned {
@@ -33,7 +33,7 @@ struct NoteRowView: View {
                 }
                 Text(locked ? "This note is locked" : subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(.secondaryLabel))
                     .lineLimit(1)
             }
             if !locked, let attachment = note.attachments?.first, let data = attachment.thumbnail ?? attachment.payload, let image = UIImage(data: data) {

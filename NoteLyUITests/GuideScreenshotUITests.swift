@@ -107,6 +107,50 @@ final class GuideScreenshotUITests: XCTestCase {
         snap("19-photo-menu")
     }
 
+    func testCaptureDarkTheme() {
+        XCUIDevice.shared.appearance = .dark
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-ui-testing",
+            "-ui-testing-skip-onboarding",
+            "-ui-testing-seed-notes"
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Folders"].waitForExistence(timeout: 12))
+        sleep(1)
+        snap("dark-folders")
+
+        if app.staticTexts["Notes"].firstMatch.waitForExistence(timeout: 4) {
+            app.staticTexts["Notes"].firstMatch.tap()
+        }
+        if app.staticTexts["Grocery list"].waitForExistence(timeout: 6) {
+            sleep(1)
+            snap("dark-notes")
+            app.staticTexts["Grocery list"].tap()
+            sleep(1)
+            snap("dark-note")
+        }
+
+        app.terminate()
+        app.launchArguments = [
+            "-ui-testing",
+            "-ui-testing-skip-onboarding",
+            "-ui-testing-open-vault"
+        ]
+        app.launchEnvironment = ["NOTELY_UITEST_PHRASE": "harbor-lantern"]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Hidden Folders"].waitForExistence(timeout: 12))
+        sleep(1)
+        snap("dark-hidden")
+        app.staticTexts["Files"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Files"].waitForExistence(timeout: 6))
+        sleep(1)
+        snap("dark-files")
+        XCUIDevice.shared.appearance = .light
+    }
+
     private func snap(_ name: String) {
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = name

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Notes yellow. Folder icons, dates, links, and buttons use this tint, the same role yellow has in Notes.
 enum Theme {
@@ -9,6 +10,27 @@ enum Theme {
     static let cardBackground = Color(.secondarySystemGroupedBackground)
     /// Private area only. The notes list stays yellow.
     static let vault = Color(red: 1, green: 0.231, blue: 0.188)
+    /// White in light mode. Raised gray in dark mode, so a field stays visible on a black page.
+    static let fieldFill = Color(uiColor: UIColor { traits in
+        if traits.userInterfaceStyle == .dark {
+            return UIColor(red: 0.173, green: 0.173, blue: 0.180, alpha: 1)
+        }
+        return .systemBackground
+    })
+    static let fieldStroke = Color.primary.opacity(0.18)
+
+    /// Black on the brighter dark-mode yellow. White on the darker light-mode yellow.
+    static func onAccent(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? .black : .white
+    }
+}
+
+/// List rows keep the colors on their labels. The default list button paints the whole row in the tint.
+struct RowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.55 : 1)
+    }
 }
 
 enum VaultCopy {
@@ -35,7 +57,7 @@ struct PlainTextBox: View {
                 .privacySensitive()
                 .padding(.horizontal, 20)
                 .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
-                .background(Color(.systemBackground), in: Capsule())
+                .background(Theme.fieldFill, in: Capsule())
                 .accessibilityIdentifier(identifier)
                 .accessibilityLabel(title)
         }

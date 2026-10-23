@@ -169,7 +169,7 @@ struct DictationSearchField: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(.primary)
-            TextField(prompt, text: $text)
+            TextField("", text: $text, prompt: Text(prompt).foregroundStyle(Color(.secondaryLabel)))
                 .focused($focused)
                 .textInputAutocapitalization(.never)
                 .submitLabel(.search)
@@ -201,7 +201,7 @@ struct DictationSearchField: View {
         }
         .padding(.horizontal, 16)
         .frame(height: 44)
-        .background(Color(.systemBackground), in: Capsule())
-        .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
+        .background(Theme.fieldFill, in: Capsule())
+        .overlay(Capsule().stroke(Theme.fieldStroke, lineWidth: 0.5))
     }
 }

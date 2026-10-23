@@ -339,16 +339,16 @@ struct VaultFilesView: View {
                     .foregroundStyle(folder.isPinned ? Theme.accent : Theme.vault)
                     .frame(width: 28)
                 Text(folder.name)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color(.label))
                 Spacer()
                 Text("\(model.itemCount(in: folder.id))")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(.secondaryLabel))
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.tertiary)
             }
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(RowButtonStyle())
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) { pendingFolderDelete = folder } label: {
                 Label("Delete", systemImage: "trash")
@@ -474,7 +474,7 @@ struct VaultFilesView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.type == .photo ? "Photo" : (item.type == .video ? "Video" : "File"))
                         .lineLimit(1)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color(.label))
                     Text(ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))
                         .font(.caption)
                         .foregroundStyle(.secondary)
