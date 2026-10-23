@@ -204,15 +204,3 @@ The UI-test hook is compiled only in Debug, and only when the process is launche
 Paste `APP_REVIEW_NOTES.md` into App Store Connect. Host `PRIVACY.md` and put that URL in the privacy policy field. The nutrition label can be Data Not Collected: notes, phrases, and keys stay on device, and the app has no account and no network client.
 
 Suggested description line: "NoteLy is a notes app with an optional private vault. You choose a secret phrase during setup. Typing that phrase into Search and confirming with Face ID or your passcode opens encrypted notes that stay on your device."
-
-## Known limitations
-
-- There is no recovery if the phrase is forgotten. Setup says this before the vault is created.
-- The vault key is This Device Only. A new phone or a restore does not receive it. Move notes with the encrypted export, then import them after creating a vault on the new device. The export password is not the search phrase.
-- Access control is the current biometric set or the device passcode. Adding or removing a face or fingerprint can turn off the biometric path. The passcode is the fallback. If the keychain item becomes unreadable, the notes cannot be rebuilt without an export made beforehand. Delete the vault from Settings and set it up again only if you accept that those notes are gone.
-- iOS posts the screenshot notification after the image is taken, so that shot can still contain whatever was on screen. Recording and mirroring are covered while the screen is captured. The app switcher is covered when the scene becomes inactive.
-- The decoy list is ordinary sample notes. Its settings screen does not include panic erase or the second-phrase controls, so those two screens are not identical.
-- Export builds the backup in memory. Photos are recompressed to a long edge of 2048 before they are stored, which keeps typical notes small, but a very large vault will use more memory during export.
-- Submitting a search of 6 to 128 characters runs PBKDF2 when a vault exists, so Return is briefly slower than a short query. That cost is the guessing brake. Whether a vault exists is explained in Settings; the phrase is not.
-- Jailbreak checks are hints only. A modified device can hide them.
-- CryptoKit does not provide a way to zero a `SymmetricKey`. Locking removes the app's reference.
