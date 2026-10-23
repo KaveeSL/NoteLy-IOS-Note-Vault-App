@@ -74,7 +74,7 @@ struct PlainTextBox: View {
     @ViewBuilder
     private var protectedField: some View {
         #if DEBUG
-        if UITestHooks.showFilledPhrase {
+        if UITestHooks.showFilledPhrase || UITestHooks.showOnboardingPhrase {
             field
         } else {
             field.privacySensitive()

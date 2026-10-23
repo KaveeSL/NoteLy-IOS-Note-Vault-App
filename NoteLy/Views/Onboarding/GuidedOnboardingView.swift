@@ -182,12 +182,30 @@ struct GuidedOnboardingView: View {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
-            if mode == .firstLaunch, let match = flow.firstIndex(where: { $0.rawValue == saved }), match > 0 {
-                path = Array(flow.dropFirst().prefix(match))
-            } else {
-                path = []
+            path = restoredPath(saved: saved)
+        }
+        #if DEBUG
+        if mode == .firstLaunch, UITestHooks.showOnboardingPhrase {
+            showPhrase = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                showPhrase = true
+                phrase = "bright-harbor"
+                phraseConfirm = "bright-harbor"
             }
         }
+        #endif
+    }
+
+    private func restoredPath(saved: Int) -> [OnboardingStep] {
+        #if DEBUG
+        if mode == .firstLaunch, UITestHooks.showOnboardingPhrase {
+            return [.phrase]
+        }
+        #endif
+        if mode == .firstLaunch, let match = flow.firstIndex(where: { $0.rawValue == saved }), match > 0 {
+            return Array(flow.dropFirst().prefix(match))
+        }
+        return []
     }
 
     private func continueForward() {
@@ -350,7 +368,7 @@ struct GuidedOnboardingView: View {
                     .foregroundStyle(.primary)
             }
         }
-        .privacySensitive()
+        .modifier(PhrasePrivacy())
     }
 
     private func hintRow(_ symbol: String, _ text: String) -> some View {
@@ -558,6 +576,20 @@ struct GuidedOnboardingView: View {
 
     private func phraseField(_ title: String, text: Binding<String>, identifier: String) -> some View {
         PlainTextBox(title: title, text: text, secure: !showPhrase, identifier: identifier)
+    }
+}
+
+private struct PhrasePrivacy: ViewModifier {
+    func body(content: Content) -> some View {
+        #if DEBUG
+        if UITestHooks.showOnboardingPhrase {
+            content
+        } else {
+            content.privacySensitive()
+        }
+        #else
+        content.privacySensitive()
+        #endif
     }
 }
 

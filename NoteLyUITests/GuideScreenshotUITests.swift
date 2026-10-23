@@ -246,6 +246,24 @@ final class GuideScreenshotUITests: XCTestCase {
         XCUIDevice.shared.appearance = .light
     }
 
+    func testCaptureOnboardingPhrase() {
+        XCUIDevice.shared.appearance = .light
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-ui-testing",
+            "-ui-testing-reset-onboarding",
+            "-ui-testing-show-onboarding-phrase"
+        ]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Your phrase"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Strength: OK"].waitForExistence(timeout: 6))
+        let button = app.buttons["onboarding.continue"]
+        XCTAssertTrue(button.waitForExistence(timeout: 4))
+        XCTAssertTrue(button.isEnabled)
+        sleep(1)
+        snap("02-phrase")
+    }
+
     func testCapturePhraseFilled() {
         XCUIDevice.shared.appearance = .light
         let app = XCUIApplication()

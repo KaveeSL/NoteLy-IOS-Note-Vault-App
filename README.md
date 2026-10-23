@@ -10,7 +10,7 @@ Screens below are from the iPhone app.
 
 ### First launch
 
-Get Started, then a phrase you type twice, a 6-digit code, and optional Face ID.
+Get Started, then a phrase you type twice, a 6-digit code, and optional Face ID. The phrase screen shows an example, bright-harbor, so Continue is ready. That example is not a phrase saved on a phone.
 
 | Welcome | Your phrase |
 | --- | --- |

@@ -1000,6 +1000,11 @@ enum UITestHooks {
         isEnabled && ProcessInfo.processInfo.arguments.contains("-ui-testing-show-phrase")
     }
 
+    /// Opens the first-launch phrase step with an example already typed.
+    static var showOnboardingPhrase: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains("-ui-testing-show-onboarding-phrase")
+    }
+
     /// Supplied by the UI test process. Empty unless `-ui-testing` is also set.
     static var phrase: String? {
         guard isEnabled else { return nil }
