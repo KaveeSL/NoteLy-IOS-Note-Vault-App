@@ -42,6 +42,7 @@ struct VaultFilesView: View {
                 if model.filter == .all && !model.childFolders.isEmpty {
                     folderList
                         .frame(height: folderListHeight)
+                        .clipped()
                 }
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 1) {
@@ -589,7 +590,7 @@ struct VaultFilesView: View {
     }
 
     private var folderListHeight: CGFloat {
-        CGFloat(min(model.childFolders.count, 6)) * 54 + 16
+        CGFloat(min(model.childFolders.count, 6)) * 56 + 40
     }
 
     @ViewBuilder

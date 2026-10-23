@@ -906,6 +906,10 @@ final class AppState: ObservableObject {
         } catch {
             VaultLog.security.error("UI test vault setup failed")
         }
+        if UITestHooks.openVault, session.key != nil {
+            vaultFiles.deleteStoredFiles()
+            vaultFiles.seedGuideSamples()
+        }
     }
 
     private static var didSeedNotes = false

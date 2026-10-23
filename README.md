@@ -42,7 +42,23 @@ Type the phrase into Search and submit it, then confirm with Face ID or the 6-di
 
 | A private note | Files |
 | --- | --- |
-| ![Private note](screenshots/11-private-note.png) | ![Files](screenshots/12-files.png) |
+| ![Private note](screenshots/11-private-note.png) | ![Files with folders and photos](screenshots/12-files.png) |
+
+All shows folders and photos together. Photos, Videos, and Files show matching items from every folder and hide the folder list. Trip holds one photo. Receipts is empty.
+
+| Inside Trip | Add: Move or Copy |
+| --- | --- |
+| ![Trip folder](screenshots/18-trip.png) | ![Move or Copy](screenshots/19-move-copy.png) |
+
+Tap + and choose Photos or Videos, Files, or Camera. **Move** removes the original after the file is saved here. **Copy** leaves the original where it is.
+
+Press and hold a photo to lift it and open its menu.
+
+| Press and hold a photo |
+| --- |
+| ![Photo menu](screenshots/20-photo-menu.png) |
+
+**Favorite** stars the photo. **Rename** changes its name. **Move** puts it in Files or in a folder such as Trip or Receipts. That is separate from the Move button used when adding a file. **Export** shares a copy, and that copy leaves the vault. **Export without location** shares a photo copy with the location removed. The saved photo keeps its location. **Delete** moves it to Recently Deleted.
 
 The gear inside Hidden Folders opens Private Settings. The page continues below the first screen.
 

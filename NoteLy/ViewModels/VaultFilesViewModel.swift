@@ -960,3 +960,109 @@ struct VaultTempFile: Transferable {
         return destination
     }
 }
+
+#if DEBUG
+extension VaultFilesViewModel {
+    /// Sample folders and photos for the screenshot guide. Debug launches only.
+    func seedGuideSamples() {
+        guard let master = session.key else { return }
+        let trip = VaultFolder(name: "Trip")
+        let receipts = VaultFolder(name: "Receipts")
+        folders = [trip, receipts]
+        library = .empty
+        library.folders = folders
+        items = []
+        let specs: [(GuidePicture, String, UUID?)] = [
+            (.harbor, "Harbor.jpg", nil),
+            (.window, "Window.jpg", nil),
+            (.sunset, "Sunset.jpg", trip.id)
+        ]
+        for spec in specs {
+            guard let url = spec.0.write(named: spec.1) else { continue }
+            defer { try? FileManager.default.removeItem(at: url) }
+            guard var item = try? store.importFile(
+                at: url,
+                name: spec.1,
+                folderID: spec.2,
+                companionID: nil,
+                using: master,
+                shouldContinue: { true }
+            ) else { continue }
+            let meta = ThumbnailMaker.dimensions(url: url, type: item.type)
+            item.pixelWidth = meta.width == 0 ? nil : meta.width
+            item.pixelHeight = meta.height == 0 ? nil : meta.height
+            if let jpeg = UIImage(contentsOfFile: url.path)?.jpegData(compressionQuality: 0.8) {
+                try? store.saveThumbnail(jpeg, id: item.id, using: master)
+                item.hasThumbnail = true
+            }
+            items.append(item)
+        }
+        library.items = items
+        persist()
+        refreshSummary()
+    }
+}
+
+private enum GuidePicture {
+    case harbor
+    case sunset
+    case window
+
+    func write(named name: String) -> URL? {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 800, height: 800))
+        let image = renderer.image { context in
+            let bounds = CGRect(x: 0, y: 0, width: 800, height: 800)
+            switch self {
+            case .harbor:
+                drawGradient(in: bounds, colors: [
+                    UIColor(red: 0.45, green: 0.72, blue: 0.95, alpha: 1),
+                    UIColor(red: 0.05, green: 0.28, blue: 0.55, alpha: 1)
+                ], context: context.cgContext)
+                UIColor(red: 1, green: 0.92, blue: 0.55, alpha: 1).setFill()
+                UIBezierPath(ovalIn: CGRect(x: 520, y: 90, width: 120, height: 120)).fill()
+                UIColor(red: 0.95, green: 0.97, blue: 1, alpha: 0.9).setFill()
+                let sail = UIBezierPath()
+                sail.move(to: CGPoint(x: 250, y: 520))
+                sail.addLine(to: CGPoint(x: 390, y: 280))
+                sail.addLine(to: CGPoint(x: 400, y: 520))
+                sail.close()
+                sail.fill()
+            case .sunset:
+                drawGradient(in: bounds, colors: [
+                    UIColor(red: 0.98, green: 0.55, blue: 0.25, alpha: 1),
+                    UIColor(red: 0.45, green: 0.12, blue: 0.38, alpha: 1)
+                ], context: context.cgContext)
+                UIColor(red: 1, green: 0.78, blue: 0.28, alpha: 1).setFill()
+                UIBezierPath(ovalIn: CGRect(x: 280, y: 430, width: 240, height: 240)).fill()
+            case .window:
+                UIColor(red: 0.93, green: 0.88, blue: 0.8, alpha: 1).setFill()
+                UIBezierPath(rect: bounds).fill()
+                UIColor(red: 0.55, green: 0.78, blue: 0.95, alpha: 1).setFill()
+                UIBezierPath(roundedRect: CGRect(x: 180, y: 80, width: 440, height: 460), cornerRadius: 8).fill()
+                UIColor(red: 0.25, green: 0.55, blue: 0.32, alpha: 1).setFill()
+                UIBezierPath(ovalIn: CGRect(x: 300, y: 560, width: 200, height: 160)).fill()
+            }
+        }
+        guard let data = image.jpegData(compressionQuality: 0.9) else { return nil }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+        do {
+            try data.write(to: url, options: .atomic)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    private func drawGradient(in bounds: CGRect, colors: [UIColor], context: CGContext) {
+        let space = CGColorSpaceCreateDeviceRGB()
+        let cgColors = colors.map(\.cgColor) as CFArray
+        guard let gradient = CGGradient(colorsSpace: space, colors: cgColors, locations: [0, 1]) else { return }
+        context.drawLinearGradient(
+            gradient,
+            start: CGPoint(x: bounds.midX, y: bounds.minY),
+            end: CGPoint(x: bounds.midX, y: bounds.maxY),
+            options: []
+        )
+    }
+}
+#endif

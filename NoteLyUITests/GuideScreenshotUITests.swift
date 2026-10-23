@@ -65,6 +65,48 @@ final class GuideScreenshotUITests: XCTestCase {
         }
     }
 
+    func testCaptureFilesGuide() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-ui-testing",
+            "-ui-testing-skip-onboarding",
+            "-ui-testing-open-vault"
+        ]
+        app.launchEnvironment = ["NOTELY_UITEST_PHRASE": "harbor-lantern"]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Hidden Folders"].waitForExistence(timeout: 12))
+        XCTAssertTrue(app.staticTexts["3"].waitForExistence(timeout: 8))
+        snap("09-vault")
+
+        app.staticTexts["Files"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Trip"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["Harbor.jpg"].waitForExistence(timeout: 8))
+        sleep(1)
+        snap("12-files")
+
+        app.buttons["Trip, 1"].tap()
+        XCTAssertTrue(app.buttons["Sunset.jpg"].waitForExistence(timeout: 6))
+        sleep(1)
+        snap("12-trip")
+        app.buttons["Files"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["Harbor.jpg"].waitForExistence(timeout: 6))
+
+        app.buttons["Add"].tap()
+        app.buttons["Photos or Videos"].tap()
+        XCTAssertTrue(app.staticTexts["Move removes the original. Copy leaves it where it is."].waitForExistence(timeout: 6))
+        sleep(1)
+        snap("18-move-copy")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72)).tap()
+        sleep(1)
+
+        let photo = app.buttons["Harbor.jpg"]
+        XCTAssertTrue(photo.waitForExistence(timeout: 4))
+        photo.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 1.5)
+        sleep(1)
+        snap("19-photo-menu")
+    }
+
     private func snap(_ name: String) {
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = name
