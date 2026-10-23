@@ -82,11 +82,22 @@ struct RootView: View {
 
     var body: some View {
         Group {
+            #if DEBUG
+            if UITestHooks.openVault {
+                VaultHomeView(model: appState.vaultViewModel, files: appState.vaultFiles)
+                    .tint(Theme.vault)
+            } else if appState.hasCompletedOnboarding {
+                NotesListView(viewModel: appState.notesListViewModel)
+            } else {
+                OnboardingView()
+            }
+            #else
             if appState.hasCompletedOnboarding {
                 NotesListView(viewModel: appState.notesListViewModel)
             } else {
                 OnboardingView()
             }
+            #endif
         }
         .fullScreenCover(isPresented: $appState.isVaultPresented, onDismiss: {
             appState.lock()

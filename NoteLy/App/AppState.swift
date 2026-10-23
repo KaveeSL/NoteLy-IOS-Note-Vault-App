@@ -385,6 +385,9 @@ final class AppState: ObservableObject {
     /// iOS delivers this after the image is already captured. Locking still clears the private
     /// screen so a following capture does not keep showing it. Recording is covered by `isCaptured`.
     func screenshotTaken() {
+        #if DEBUG
+        if UITestHooks.isEnabled { return }
+        #endif
         guard isVaultPresented || session.isOpen else { return }
         lock()
     }
@@ -869,9 +872,20 @@ final class AppState: ObservableObject {
     /// not from a string in this function. The key is stored without biometrics so XCUITest
     /// can open the private area after typing that phrase.
     private func prepareUITests() {
+        if UITestHooks.openVault {
+            try? vaultStore.deleteAll()
+            let key = crypto.generateKey()
+            try? vaultStore.save(
+                VaultNote(title: "Travel plans", body: "Pack a jacket."),
+                using: key
+            )
+            session.install(key)
+        }
         guard let phrase = UITestHooks.phrase else { return }
         guard let phrases = phrases as? SecretPhraseService else { return }
-        try? vaultStore.deleteAll()
+        if !UITestHooks.openVault {
+            try? vaultStore.deleteAll()
+        }
         try? decoyStore.deleteAll()
         do {
             try phrases.configureForUITest(phrase: phrase)
@@ -881,6 +895,14 @@ final class AppState: ObservableObject {
                 account: KeychainAccount.vaultKey,
                 protection: .afterFirstUnlockThisDeviceOnly
             )
+            if UITestHooks.openVault {
+                try vaultStore.deleteAll()
+                try vaultStore.save(
+                    VaultNote(title: "Travel plans", body: "Pack a jacket."),
+                    using: key
+                )
+                session.install(key)
+            }
         } catch {
             VaultLog.security.error("UI test vault setup failed")
         }
@@ -922,6 +944,11 @@ enum UITestHooks {
 
     static var biometricAlwaysSucceeds: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains("-ui-testing-biometric-success")
+    }
+
+    /// Opens the private area on launch so a UI test can photograph it.
+    static var openVault: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains("-ui-testing-open-vault")
     }
 
     /// Supplied by the UI test process. Empty unless `-ui-testing` is also set.

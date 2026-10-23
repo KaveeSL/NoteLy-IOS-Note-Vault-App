@@ -4,6 +4,50 @@ NoteLy is a native iOS notes app with a private vault. Everyday notes are a norm
 
 The vault is disclosed in onboarding, in Settings, and in the App Review notes. There is no button that opens it. The phrase is the secret, not the existence of the feature.
 
+## Guide
+
+Screens below are from the iPhone app.
+
+### First launch
+
+Get Started, then a phrase you type twice, a 6-digit code, and optional Face ID.
+
+| Welcome | Your phrase |
+| --- | --- |
+| ![Welcome to NoteLy](screenshots/01-welcome.png) | ![Choose a phrase](screenshots/02-phrase.png) |
+
+| 6-digit code | Face ID |
+| --- | --- |
+| ![Choose a 6-digit code](screenshots/03-passcode.png) | ![Optional Face ID](screenshots/04-face-id.png) |
+
+### Notes
+
+Folders hold everyday notes. Search and the new-note button sit at the bottom. Settings is the gear.
+
+| Folders | Settings |
+| --- | --- |
+| ![Folders](screenshots/05-folders.png) | ![Notes settings](screenshots/06-settings.png) |
+
+| Notes | A note |
+| --- | --- |
+| ![Notes list](screenshots/07-notes.png) | ![Open note](screenshots/08-note.png) |
+
+### Hidden space
+
+Type the phrase into Search and submit it, then confirm with Face ID or the 6-digit code. The hidden folders use a red accent. Lock is the button at the top left. Files keeps photos, videos, and documents on this iPhone, with filters for all, photos, videos, and files.
+
+| Hidden Folders | Private notes |
+| --- | --- |
+| ![Hidden Folders](screenshots/09-hidden-folders.png) | ![Private notes](screenshots/10-private-notes.png) |
+
+| A private note | Files |
+| --- | --- |
+| ![Private note](screenshots/11-private-note.png) | ![Files](screenshots/12-files.png) |
+
+| Private Settings | |
+| --- | --- |
+| ![Private Settings](screenshots/13-private-settings.png) | Lock timing, Face ID, favorites, and the other private controls. |
+
 ## Requirements
 
 - Xcode 16 or newer
