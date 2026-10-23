@@ -44,9 +44,49 @@ Type the phrase into Search and submit it, then confirm with Face ID or the 6-di
 | --- | --- |
 | ![Private note](screenshots/11-private-note.png) | ![Files](screenshots/12-files.png) |
 
-| Private Settings | |
+The gear inside Hidden Folders opens Private Settings. The page continues below the first screen.
+
+**Welcome** replays the introduction.
+
+**Lock when idle** is Never, 1 minute, 5 minutes, or 15 minutes. Never leaves this area open while NoteLy is on screen. Leaving the app, or tapping Lock, still locks it.
+
+**Ask again for risky actions** is Always ask, Within 30 seconds, or Within 1 minute. Export, emptying Recently Deleted, permanent delete, and deleting a folder can skip the next ask during that window. Changing the passcode, Face ID, backup, or deleting everything always asks.
+
+**Favorites** is Manual, Most Used, or Both. Manual shows starred items. Most Used ranks what you keep open. Both puts stars first. Clear usage history forgets that ranking.
+
+| Welcome, lock, and favorites | Face ID, phrase, and second phrase |
 | --- | --- |
-| ![Private Settings](screenshots/13-private-settings.png) | Lock timing, Face ID, favorites, and the other private controls. |
+| ![Private Settings, top](screenshots/13-private-settings.png) | ![Face ID, passcode, and phrase](screenshots/14-private-settings-security.png) |
+
+**Face ID** opens this space when this iPhone has it. The 6-digit code is used only on a phone without Face ID.
+
+**Change passcode** asks Face ID first. When Face ID is off, it asks for the 6-digit code, then the current code and the new one.
+
+**Change phrase** asks Face ID when it is on, otherwise the 6-digit code. There is no recovery if the new phrase is forgotten.
+
+**Set a second phrase** opens a separate set of ordinary sample notes. It does not open these notes, and it does not ask for Face ID. Use a phrase you will not mix up with this one.
+
+**Include encrypted files in device backup** is off until you turn it on. Encrypted notes and files then go into an iPhone backup. The key stays on this iPhone, so the Files app and a backup alone cannot open them. Export is how you move them.
+
+**Erase after repeated failures** is off until you turn it on. The stepper runs from 3 to 10 and starts at 5. That many failed Face ID or passcode attempts in a row permanently delete the private notes. Cancelled prompts do not count. Nothing extra is shown when it happens.
+
+| Backup and panic erase | Move, delete, and start over |
+| --- | --- |
+| ![Backup and panic erase](screenshots/15-private-settings-backup.png) | ![Move notes and delete](screenshots/16-private-settings-move.png) |
+
+**Export encrypted backup** and **Import encrypted backup** use a backup password that is separate from the secret phrase. The password is case-sensitive, and you need it to import. These notes do not move to a new phone unless you import that file. Export a backup before changing Face ID, because a Face ID change can remove the biometric unlock.
+
+**Delete private notes** asks you to confirm it's you and to type the phrase. This cannot be undone.
+
+**Clear all data and start over** deletes every note, photo, phrase, and code. A confirmation appears, then Face ID. The app opens like a new install.
+
+**Face ID Diagnostics** shows whether Face ID or Touch ID can be used on this phone, and the last error code if it cannot.
+
+**Version** is the app version.
+
+| Diagnostics and version |
+| --- |
+| ![Face ID Diagnostics and version](screenshots/17-private-settings-end.png) |
 
 ## Requirements
 
