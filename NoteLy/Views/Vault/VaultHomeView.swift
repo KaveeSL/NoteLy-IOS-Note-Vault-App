@@ -48,17 +48,20 @@ struct VaultHomeView: View {
                             .textCase(nil)
                         }
                     }
+                    .environment(\.editMode, .constant(editingFavorites ? .active : .inactive))
                 }
                 Section("On My iPhone") {
                     NavigationLink(value: "notes") {
-                        vaultFolder(name: "Notes", symbol: "folder.fill", count: model.notes.count)
+                        vaultFolder(name: "Notes", symbol: "folder.fill", count: model.notes.filter { $0.deletedAt == nil }.count)
                     }
                     NavigationLink(value: "files") {
-                        vaultFolder(name: "Files", symbol: "folder.fill", count: files.visibleItems.count)
+                        vaultFolder(name: "Files", symbol: "folder.fill", count: files.keptItemCount)
                     }
                     NavigationLink(value: "trash") {
                         vaultFolder(name: "Recently Deleted", symbol: "trash", count: deletedCount)
                     }
+                    .deleteDisabled(true)
+                    .moveDisabled(true)
                 }
             }
             .listStyle(.insetGrouped)
@@ -83,12 +86,13 @@ struct VaultHomeView: View {
             }
             .sheet(isPresented: $files.wantsPhotoPicker, onDismiss: { appState.setSystemUI(false) }) {
                 PhotoLibraryPicker { results in
-                    Task { await files.importPickerResults(results, removeFromPhotos: false) }
+                    Task { await files.importPickerResults(results, removeFromPhotos: files.removeImportedOriginals) }
                 }
                 .onAppear { appState.setSystemUI(true) }
             }
             .alert("Import", isPresented: importDebugPresented) {
-                Button("OK", role: .cancel) { files.importDebug = nil }
+                Button("OK") { files.importDebug = nil }
+                    .tint(Color(red: 0.0, green: 0.45, blue: 1))
             } message: {
                 Text(files.importDebug ?? "")
             }
@@ -106,9 +110,8 @@ struct VaultHomeView: View {
             .navigationDestination(for: UUID.self) { id in
                 VaultNoteEditorView(noteID: id, model: model)
             }
-            .environment(\.editMode, .constant(editingFavorites ? .active : .inactive))
             .sheet(item: $openedFile) { item in
-                VaultItemViewer(item: item, model: files)
+                VaultItemViewer(item: item, items: favoriteMedia(starting: item), model: files)
             }
         }
         .accessibilityIdentifier("vault.home")
@@ -327,6 +330,18 @@ struct VaultHomeView: View {
         let raw = item.id.split(separator: "-", maxSplits: 1).last.map(String.init) ?? ""
         guard let id = UUID(uuidString: raw) else { return nil }
         return (item.id.hasPrefix("note-"), id)
+    }
+
+    private func favoriteMedia(starting item: VaultItem) -> [VaultItem] {
+        let media = favorites.compactMap { candidate -> VaultItem? in
+            guard let identity = favoriteIdentity(candidate), !identity.isNote else { return nil }
+            return files.items.first { file in
+                file.id == identity.id && (file.type == .photo || file.type == .video)
+            }
+        }
+        if media.contains(where: { $0.id == item.id }) { return media }
+        if item.type == .photo || item.type == .video { return [item] }
+        return [item]
     }
 
     private func openFavorite(_ item: FavoriteCandidate) {

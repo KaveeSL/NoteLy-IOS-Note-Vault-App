@@ -335,6 +335,9 @@ final class AppState: ObservableObject {
 
     /// Runs only after the user submits the search field. A miss leaves the query in place
     /// and the list filters as usual. A hit clears the field before the system prompt.
+    ///
+    /// A search that is not the phrase is not an unlock attempt. Panic erase counts a wrong
+    /// 6-digit code only. Typing ordinary words must not move that count.
     func handleSearchSubmit(_ typed: String? = nil) async {
         let direct = typed?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let submitted = direct.isEmpty ? searchText : direct
@@ -388,6 +391,11 @@ final class AppState: ObservableObject {
 
     func lock() {
         unlockGeneration += 1
+        showPasscode = false
+        passcodeMessage = ""
+        if reauthPasscode || reauthContinuation != nil {
+            cancelReauth()
+        }
         let shouldClose = isVaultPresented || session.isOpen || isAuthenticating
         guard shouldClose else {
             updateShield()
@@ -492,14 +500,6 @@ final class AppState: ObservableObject {
         let generation = unlockGeneration
         searchText = ""
         guard !attemptLimiter.isCoolingDown() else { return }
-        switch biometric.availability() {
-        case .passcodeNotSet, .unavailable:
-            attemptLimiter.recordFailure()
-            considerPanicWipe()
-            return
-        case .ready:
-            break
-        }
         isAuthenticating = true
         updateShield()
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
@@ -509,14 +509,16 @@ final class AppState: ObservableObject {
             updateShield()
             return
         }
-        let useBiometrics = faceIDEnabled && biometric.biometricsAvailable()
-        let outcome = useBiometrics
-            ? await biometric.authenticateBiometrics(reason: UnlockPrompt.reason)
-            : BiometricAuthOutcome.failed
-        guard generation == unlockGeneration else { return }
-        if case .success(let context) = outcome {
+        if faceIDEnabled, biometric.biometricsAvailable() {
+            let outcome = await biometric.authenticateBiometrics(reason: UnlockPrompt.reason)
+            guard generation == unlockGeneration else { return }
+            if case .success(let context) = outcome {
+                isAuthenticating = false
+                await openVault(with: context, generation: generation)
+                return
+            }
             isAuthenticating = false
-            await openVault(with: context, generation: generation)
+            updateShield()
             return
         }
         isAuthenticating = false
@@ -527,9 +529,7 @@ final class AppState: ObservableObject {
             showPasscode = true
             return
         }
-        if case .cancelled = outcome {
-            return
-        }
+        guard generation == unlockGeneration else { return }
         let legacy = await biometric.authenticate(reason: UnlockPrompt.reason)
         guard generation == unlockGeneration else { return }
         if case .success(let context) = legacy {
@@ -662,7 +662,8 @@ final class AppState: ObservableObject {
         passcodeMessage = ""
     }
 
-    /// Face ID only. A cancel stops. Anything else means the 6-digit code should be used.
+    /// Face ID when this iPhone has it. The 6-digit code is only for a phone without Face ID.
+    /// A miss or a cancel does not open the digit pad.
     func confirmWithFaceID() async -> IdentityCheck {
         guard biometric.biometricsAvailable() else { return .needCode }
         isAuthenticating = true
@@ -670,14 +671,8 @@ final class AppState: ObservableObject {
         let outcome = await biometric.authenticateBiometrics(reason: UnlockPrompt.reason)
         isAuthenticating = false
         updateShield()
-        switch outcome {
-        case .success:
-            return .allowed
-        case .cancelled:
-            return .cancelled
-        default:
-            return .needCode
-        }
+        if case .success = outcome { return .allowed }
+        return .cancelled
     }
 
     func unlockCodeAvailability() -> UnlockCodeAvailability {
@@ -701,9 +696,18 @@ final class AppState: ObservableObject {
     }
 
     func setFaceIDEnabled(_ enabled: Bool) async {
-        guard await reauth.authorize(.faceID) != nil else { return }
+        if enabled, !biometric.biometricsAvailable() {
+            settings.statusMessage = "Face ID isn't set up on this iPhone."
+            objectWillChange.send()
+            return
+        }
+        guard await reauth.authorize(.faceID) != nil else {
+            objectWillChange.send()
+            return
+        }
         if !enabled, !passcodes.isConfigured() {
             settings.statusMessage = "Choose a 6-digit passcode before turning Face ID off."
+            objectWillChange.send()
             return
         }
         faceIDEnabled = enabled
@@ -727,12 +731,14 @@ final class AppState: ObservableObject {
     }
 
     private func promptReauth(_ action: RiskyAction) async -> Bool {
-        if faceIDEnabled, biometric.biometricsAvailable() {
+        if biometric.biometricsAvailable() {
             setSystemUI(true)
             let outcome = await biometric.authenticateBiometrics(reason: action.title)
             setSystemUI(false)
             if case .success = outcome { return true }
+            return false
         }
+        guard passcodes.isConfigured() else { return false }
         reauthMessage = ""
         reauthPasscode = true
         return await withCheckedContinuation { continuation in

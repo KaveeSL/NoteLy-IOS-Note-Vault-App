@@ -44,11 +44,27 @@ final class VaultFileStore: VaultFileStoring, @unchecked Sendable {
         VaultStore.defaultDirectory(subfolder: "Vault")
     }
 
+    /// Folders that may hold a decrypted photo, video, or document while the vault is open.
+    /// They are removed on lock and on the next launch. A computer never sees these as the stored copy.
+    static let plaintextFolderNames = ["VaultPlayback", "VaultThumbs", "VaultImport", "NoteLyPlain"]
+
     static func purgeTemporaryFiles() {
         let manager = FileManager.default
-        let roots = [manager.temporaryDirectory.appendingPathComponent("VaultPlayback", isDirectory: true)]
-        for root in roots where manager.fileExists(atPath: root.path) {
-            try? manager.removeItem(at: root)
+        let temporary = manager.temporaryDirectory
+        for name in plaintextFolderNames {
+            let root = temporary.appendingPathComponent(name, isDirectory: true)
+            if manager.fileExists(atPath: root.path) {
+                try? manager.removeItem(at: root)
+            }
+        }
+        if let loose = try? manager.contentsOfDirectory(at: temporary, includingPropertiesForKeys: nil) {
+            let media = Set(["jpg", "jpeg", "png", "heic", "mov", "mp4", "m4v", "pdf", "caf", "bin"])
+            for url in loose where media.contains(url.pathExtension.lowercased()) {
+                let stem = url.deletingPathExtension().lastPathComponent
+                if UUID(uuidString: stem) != nil {
+                    try? manager.removeItem(at: url)
+                }
+            }
         }
         let vault = defaultDirectory()
         for folder in ["files", "thumbs"] {
@@ -86,7 +102,7 @@ final class VaultFileStore: VaultFileStoring, @unchecked Sendable {
         let cipher = try crypto.encrypt(plain, using: crypto.deriveSubkey(master, purpose: .index))
         let temp = indexURL.appendingPathExtension("partial")
         do {
-            try cipher.write(to: temp, options: [.atomic, .completeFileProtectionUnlessOpen])
+            try cipher.write(to: temp, options: [.atomic, .completeFileProtection])
             if fileManager.fileExists(atPath: indexURL.path) {
                 try fileManager.removeItem(at: indexURL)
             }
@@ -167,7 +183,7 @@ final class VaultFileStore: VaultFileStoring, @unchecked Sendable {
         try prepare()
         let cipher = try crypto.encrypt(data, using: crypto.deriveSubkey(master, purpose: .thumbnail))
         let url = thumbnailURL(id)
-        try cipher.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
+        try cipher.write(to: url, options: [.atomic, .completeFileProtection])
         try exclude(url)
     }
 
@@ -230,9 +246,21 @@ final class VaultFileStore: VaultFileStoring, @unchecked Sendable {
 
     private func prepare() throws {
         do {
-            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
-            try fileManager.createDirectory(at: filesDirectory, withIntermediateDirectories: true)
-            try fileManager.createDirectory(at: thumbsDirectory, withIntermediateDirectories: true)
+            try fileManager.createDirectory(
+                at: directory,
+                withIntermediateDirectories: true,
+                attributes: [.protectionKey: FileProtectionType.complete]
+            )
+            try fileManager.createDirectory(
+                at: filesDirectory,
+                withIntermediateDirectories: true,
+                attributes: [.protectionKey: FileProtectionType.complete]
+            )
+            try fileManager.createDirectory(
+                at: thumbsDirectory,
+                withIntermediateDirectories: true,
+                attributes: [.protectionKey: FileProtectionType.complete]
+            )
         } catch {
             throw VaultError.persistenceFailed
         }
@@ -273,7 +301,7 @@ final class VaultFileStore: VaultFileStoring, @unchecked Sendable {
         var isDirectory: ObjCBool = false
         if fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory), !isDirectory.boolValue {
             try? fileManager.setAttributes(
-                [.protectionKey: FileProtectionType.completeUnlessOpen],
+                [.protectionKey: FileProtectionType.complete],
                 ofItemAtPath: url.path
             )
         }

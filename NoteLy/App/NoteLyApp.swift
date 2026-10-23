@@ -2,8 +2,39 @@ import SwiftData
 import SwiftUI
 import UIKit
 
+/// Portrait for the whole app. A photo or video viewer asks for landscape while it is open.
+enum AppOrientation {
+    static var mask: UIInterfaceOrientationMask = .portrait
+
+    static func apply(_ mask: UIInterfaceOrientationMask) {
+        self.mask = mask
+        let scene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }
+            ?? UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        guard let scene else { return }
+        scene.requestGeometryUpdate(.iOS(interfaceOrientations: mask))
+        scene.windows.forEach { window in
+            refreshOrientations(window.rootViewController)
+        }
+    }
+
+    private static func refreshOrientations(_ controller: UIViewController?) {
+        guard let controller else { return }
+        controller.setNeedsUpdateOfSupportedInterfaceOrientations()
+        refreshOrientations(controller.presentedViewController)
+    }
+}
+
+final class NoteLyAppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        AppOrientation.mask
+    }
+}
+
 @main
 struct NoteLyApp: App {
+    @UIApplicationDelegateAdaptor(NoteLyAppDelegate.self) private var appDelegate
     @StateObject private var appState: AppState
     private let container: ModelContainer?
 

@@ -68,9 +68,9 @@ struct GuidedOnboardingView: View {
                     .padding(.horizontal, 32)
                     .padding(.top, 12)
                     .padding(.bottom, 8)
-                    .background(Color(.systemBackground))
+                    .background(step == .phrase ? Color(.systemGroupedBackground) : Color(.systemBackground))
             }
-            .background(Color(.systemBackground))
+            .background(step == .phrase ? Color(.systemGroupedBackground) : Color(.systemBackground))
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .navigationBar)
     }
@@ -342,7 +342,7 @@ struct GuidedOnboardingView: View {
                 .font(.body)
                 .padding(.trailing, 4)
                 .frame(minHeight: 44)
-            strengthMeter
+            PhraseStrengthMeter(phrase: phrase)
             if let problem = phraseProblem {
                 Text(problem)
                     .font(.subheadline)
@@ -382,25 +382,6 @@ struct GuidedOnboardingView: View {
             return "Those phrases don't match."
         }
         return nil
-    }
-
-    private var strengthMeter: some View {
-        let strength = PhraseValidator.strength(phrase)
-        let level = strength == .strong ? 3 : (strength == .ok ? 2 : 1)
-        return VStack(alignment: .leading, spacing: 6) {
-            Text(phrase.isEmpty ? "8 or more characters" : "Strength: \(strength.rawValue)")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.secondary)
-            HStack(spacing: 4) {
-                ForEach(0..<3, id: \.self) { mark in
-                    Capsule()
-                        .fill(phrase.isEmpty ? Color.secondary.opacity(0.2) : (mark < level ? Theme.accent : Color.secondary.opacity(0.2)))
-                        .frame(height: 6)
-                }
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(phrase.isEmpty ? "Use 8 or more characters" : "Strength \(strength.rawValue)")
     }
 
     private var passcodeStep: some View {
@@ -575,21 +556,7 @@ struct GuidedOnboardingView: View {
     }
 
     private func phraseField(_ title: String, text: Binding<String>, identifier: String) -> some View {
-        Group {
-            if showPhrase {
-                TextField(title, text: text)
-            } else {
-                SecureField(title, text: text)
-            }
-        }
-        .textInputAutocapitalization(.never)
-        .autocorrectionDisabled()
-        .textContentType(.none)
-        .privacySensitive()
-        .padding(.horizontal, 16)
-        .frame(minHeight: 52)
-        .notesGlass(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .accessibilityIdentifier(identifier)
+        PlainTextBox(title: title, text: text, secure: !showPhrase, identifier: identifier)
     }
 }
 

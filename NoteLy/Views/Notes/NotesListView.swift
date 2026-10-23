@@ -122,8 +122,9 @@ struct NotesListView: View {
             Section {
                 ForEach(rootFolders) { folder in
                     folderRow(folder)
+                        .deleteDisabled(folder.isSystem || folder.kind == .deleted)
+                        .moveDisabled(folder.isSystem || folder.kind == .deleted)
                 }
-                .onDelete(perform: deleteFolders)
             }
             if !preferences.smartFolders.isEmpty {
                 Section("Smart Folders") {
@@ -140,6 +141,7 @@ struct NotesListView: View {
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
+                            .tint(.red)
                         }
                     }
                 }
@@ -290,15 +292,25 @@ struct NotesListView: View {
             } label: {
                 folderLabel(folder, count: count)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.borderless)
             .folderSlideActions(folder: folder, share: { shareFolder(folder) }, move: { folderToMove = folder }, delete: { pendingFolder = folder })
             .contextMenu { folderMenu(folder) }
+            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12, style: .continuous))
         } else {
-            NavigationLink(value: folder.id) {
-                folderLabel(folder, count: count)
+            Button {
+                path.append(folder.id)
+            } label: {
+                HStack(spacing: 8) {
+                    folderLabel(folder, count: count)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
             }
+            .buttonStyle(.borderless)
             .folderSlideActions(folder: folder, share: { shareFolder(folder) }, move: { folderToMove = folder }, delete: { pendingFolder = folder })
             .contextMenu { folderMenu(folder) }
+            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 
@@ -308,7 +320,7 @@ struct NotesListView: View {
             Button { shareFolder(folder) } label: { Label("Share", systemImage: "square.and.arrow.up") }
             Button { folderToMove = folder } label: { Label("Move", systemImage: "folder") }
         }
-        if !folder.isSystem {
+        if folder.kind != .deleted && !folder.isSystem {
             Button {
                 renameText = folder.name
                 renameTarget = folder
@@ -318,6 +330,7 @@ struct NotesListView: View {
             Button(role: .destructive) { pendingFolder = folder } label: {
                 Label("Delete", systemImage: "trash")
             }
+            .tint(.red)
         }
     }
 
@@ -599,11 +612,15 @@ struct NotesListView: View {
     }
 
     private func ensureFolders() {
-        if folders.contains(where: { $0.kind == .notes }) { return }
-        let notesFolder = NoteFolder(name: "Notes", sortOrder: 0, isSystem: true, kind: .notes)
-        let deleted = NoteFolder(name: "Recently Deleted", sortOrder: 1, isSystem: true, kind: .deleted)
-        modelContext.insert(notesFolder)
-        modelContext.insert(deleted)
+        for folder in folders where folder.kind == .notes || folder.kind == .deleted {
+            folder.isSystem = true
+        }
+        if !folders.contains(where: { $0.kind == .notes }) {
+            modelContext.insert(NoteFolder(name: "Notes", sortOrder: 0, isSystem: true, kind: .notes))
+        }
+        if !folders.contains(where: { $0.kind == .deleted }) {
+            modelContext.insert(NoteFolder(name: "Recently Deleted", sortOrder: 1, isSystem: true, kind: .deleted))
+        }
         try? modelContext.save()
     }
 
@@ -685,13 +702,6 @@ struct NotesListView: View {
             NoteLocks.set(note.id, locked: true)
             viewModel.lockRevision += 1
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        }
-    }
-
-    private func deleteFolders(at offsets: IndexSet) {
-        let targets = offsets.map { rootFolders[$0] }
-        for folder in targets where !folder.isSystem {
-            deleteFolder(folder)
         }
     }
 
@@ -813,29 +823,35 @@ private struct FolderEditMode: ViewModifier {
 }
 
 private extension View {
+    @ViewBuilder
     func folderSlideActions(
         folder: NoteFolder,
         share: @escaping () -> Void,
         move: @escaping () -> Void,
         delete: @escaping () -> Void
     ) -> some View {
-        swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            if !folder.isSystem {
-                Button(role: .destructive, action: delete) {
-                    Label("Delete", systemImage: "trash")
+        if folder.kind == .deleted {
+            self
+        } else {
+            self
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    if !folder.isSystem {
+                        Button(role: .destructive, action: delete) {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .tint(.red)
+                    }
                 }
-                .tint(Color(red: 1, green: 0.231, blue: 0.188))
-            }
-            if folder.kind != .deleted {
-                Button(action: move) {
-                    Label("Move", systemImage: "folder")
+                .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                    Button(action: move) {
+                        Label("Move", systemImage: "folder")
+                    }
+                    .tint(Color(red: 0.486, green: 0.361, blue: 0.988))
+                    Button(action: share) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    .tint(Color(red: 0.0, green: 0.478, blue: 1))
                 }
-                .tint(Color(red: 0.486, green: 0.361, blue: 0.988))
-                Button(action: share) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
-                .tint(Color(red: 0.0, green: 0.478, blue: 1))
-            }
         }
     }
 }
@@ -857,23 +873,12 @@ struct NotesStyleSearchBar: View {
     var onCompose: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 17, weight: .medium))
-                TextField(prompt, text: $text)
-                Image(systemName: "mic")
-                    .font(.system(size: 17))
-                    .accessibilityHidden(true)
-            }
-            .padding(.horizontal, 16)
-            .frame(height: 52)
-            .background(Color(.systemBackground), in: Capsule())
-            .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
+        HStack(alignment: .bottom, spacing: 12) {
+            DictationSearchField(text: $text, prompt: prompt)
             Button(action: onCompose) {
                 Image(systemName: "square.and.pencil")
                     .font(.system(size: 20))
-                    .frame(width: 52, height: 52)
+                    .frame(width: 44, height: 44)
                     .background(Color(.systemBackground), in: Circle())
                     .overlay(Circle().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
             }
@@ -892,7 +897,7 @@ private struct NotesBottomBar: View {
     var onMove: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .bottom, spacing: 12) {
             NotesSearchField(viewModel: viewModel)
             if showsMove {
                 Button("Move", action: onMove)
@@ -902,7 +907,7 @@ private struct NotesBottomBar: View {
                 Button(action: onCompose) {
                     Image(systemName: "square.and.pencil")
                         .font(.system(size: 20, weight: .regular))
-                        .frame(width: 52, height: 52)
+                        .frame(width: 44, height: 44)
                         .background(Color(.systemBackground), in: Circle())
                         .overlay(Circle().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
                 }
@@ -922,28 +927,12 @@ private struct NotesSearchField: View {
     @ObservedObject var viewModel: NotesListViewModel
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(.primary)
-            TextField("Search", text: $appState.searchText)
-                .accessibilityLabel("Search notes")
-                .textInputAutocapitalization(.never)
-                .submitLabel(.search)
-                .onSubmit {
-                    Task { await appState.handleSearchSubmit(appState.searchText) }
-                }
-            Image(systemName: "mic")
-                .font(.system(size: 17, weight: .regular))
-                .foregroundStyle(.primary)
-                .accessibilityHidden(true)
+        DictationSearchField(text: $appState.searchText, prompt: "Search") {
+            Task { await appState.handleSearchSubmit(appState.searchText) }
         }
-        .padding(.horizontal, 16)
-        .frame(height: 52)
-        .background(Color(.systemBackground), in: Capsule())
-        .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
         .onChange(of: appState.searchText) { _, newValue in
             viewModel.queryChanged(newValue)
         }
+        .accessibilityLabel("Search notes")
     }
 }

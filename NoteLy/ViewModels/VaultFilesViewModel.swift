@@ -36,11 +36,15 @@ final class VaultFilesViewModel: ObservableObject {
     @Published var favoritesOnly = false
     @Published var query = ""
     @Published var folderID: UUID?
+    /// Set just before the picker opens. Move deletes the original after a successful import.
+    var removeImportedOriginals = false
     @Published var isSelecting = false
     @Published var selection: Set<UUID> = []
     @Published var importProgress: ImportProgress?
     @Published var duplicatePrompt: DuplicatePrompt?
-    @Published var statusMessage: String?
+    @Published var statusMessage: String? {
+        didSet { armStatusDismissal() }
+    }
     @Published var storageSummary = ""
     @Published var gallery = true
     @Published var unlockedFolders: Set<UUID> = []
@@ -54,6 +58,7 @@ final class VaultFilesViewModel: ObservableObject {
     private let session: VaultSession
     private let cache = NSCache<NSString, UIImage>()
     private var importTask: Task<Void, Never>?
+    private var statusDismissal: Task<Void, Never>?
     private let importGate = ImportGate()
     private var duplicateContinuation: CheckedContinuation<DuplicateChoice, Never>?
     private var library = VaultLibrarySnapshot.empty
@@ -67,6 +72,12 @@ final class VaultFilesViewModel: ObservableObject {
     var deletedItems: [VaultItem] {
         let ids = Set(library.trash.map(\.id))
         return items.filter { ids.contains($0.id) }
+    }
+
+    /// Every file still in the vault, including files that live inside folders.
+    var keptItemCount: Int {
+        let deleted = Set(library.trash.map(\.id))
+        return items.filter { !deleted.contains($0.id) }.count
     }
 
     var visibleItems: [VaultItem] {
@@ -146,7 +157,6 @@ final class VaultFilesViewModel: ObservableObject {
                 importProgress?.title = "Importing \(index + 1) of \(results.count)"
                 var step = "items returned"
                 do {
-                    if let identifier = result.assetIdentifier { identifiers.append(identifier) }
                     let copies = try await Self.copyProviderFiles(result.itemProvider) { title in
                         self.importProgress?.title = title
                     }
@@ -157,6 +167,9 @@ final class VaultFilesViewModel: ObservableObject {
                         step = "index saved"
                         ImportLog.step("thumbnail made")
                         secureDelete(copy.url)
+                    }
+                    if let identifier = result.assetIdentifier {
+                        identifiers.append(identifier)
                     }
                 } catch is CancellationError {
                     break
@@ -176,8 +189,12 @@ final class VaultFilesViewModel: ObservableObject {
                 importDebug = failures.joined(separator: " ")
             }
             importProgress = nil
-            if removeFromPhotos, !identifiers.isEmpty {
-                await removeFromPhotoLibrary(identifiers)
+            if removeFromPhotos {
+                if identifiers.isEmpty {
+                    statusMessage = "Saved. Originals stayed in Photos"
+                } else {
+                    await removeFromPhotoLibrary(identifiers)
+                }
             }
             await load()
         }
@@ -256,7 +273,7 @@ final class VaultFilesViewModel: ObservableObject {
         }
     }
 
-    func importSecurityScoped(_ urls: [URL]) {
+    func importSecurityScoped(_ urls: [URL], removeOriginals: Bool = false) {
         guard !urls.isEmpty else { return }
         importGate.stop()
         importGate.reset()
@@ -271,6 +288,9 @@ final class VaultFilesViewModel: ObservableObject {
                     let temp = try copyToTemp(url)
                     try await importTemp(temp, name: url.lastPathComponent, folderID: folderID)
                     secureDelete(temp)
+                    if removeOriginals {
+                        try? FileManager.default.removeItem(at: url)
+                    }
                 } catch VaultError.importCancelled {
                     break
                 } catch {
@@ -313,22 +333,79 @@ final class VaultFilesViewModel: ObservableObject {
         duplicatePrompt = nil
     }
 
-    func createFolder(name: String) {
-        let existing = folders.map(\.name)
+    func createFolder(name: String, parent: UUID? = nil) {
+        let existing = folders.filter { $0.parentID == parent }.map(\.name)
         guard case .valid(let clean) = InputValidators.folderName(name, existing: existing) else {
             if case .invalid(let reason) = InputValidators.folderName(name, existing: existing) {
                 statusMessage = reason
             }
             return
         }
-        folders.append(VaultFolder(name: clean))
+        folders.append(VaultFolder(name: clean, parentID: parent))
         library.folders = folders
         persist()
     }
 
+    var childFolders: [VaultFolder] {
+        folders.filter { $0.parentID == folderID }.sorted { lhs, rhs in
+            if lhs.isPinned != rhs.isPinned { return lhs.isPinned && !rhs.isPinned }
+            return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+        }
+    }
+
+    func closeFolder() {
+        guard let id = folderID, let folder = folders.first(where: { $0.id == id }) else {
+            folderID = nil
+            return
+        }
+        folderID = folder.parentID
+    }
+
     func itemCount(in folderID: UUID) -> Int {
         let deleted = Set(library.trash.map(\.id))
-        return items.filter { $0.folderID == folderID && !deleted.contains($0.id) }.count
+        let ids = descendantFolderIDs(of: folderID)
+        return items.filter { item in
+            guard let id = item.folderID else { return false }
+            return ids.contains(id) && !deleted.contains(item.id)
+        }.count
+    }
+
+    private func armStatusDismissal() {
+        statusDismissal?.cancel()
+        guard statusMessage != nil else { return }
+        statusDismissal = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(5))
+            guard !Task.isCancelled else { return }
+            statusMessage = nil
+        }
+    }
+
+    private func descendantFolderIDs(of root: UUID, seen: Set<UUID> = []) -> Set<UUID> {
+        if seen.contains(root) { return [] }
+        var ids: Set<UUID> = [root]
+        var next = seen
+        next.insert(root)
+        for folder in folders where folder.parentID == root {
+            ids.formUnion(descendantFolderIDs(of: folder.id, seen: next))
+        }
+        return ids
+    }
+
+    func allowPhotoRemoval() async -> Bool {
+        let current = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        if current == .notDetermined {
+            let status = await withCheckedContinuation { continuation in
+                PHPhotoLibrary.requestAuthorization(for: .readWrite) { continuation.resume(returning: $0) }
+            }
+            return status == .authorized || status == .limited
+        }
+        if current == .authorized || current == .limited {
+            return true
+        }
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            await UIApplication.shared.open(url)
+        }
+        return false
     }
 
     func protectFolder(id: UUID, passcode: String) {
@@ -402,13 +479,24 @@ final class VaultFilesViewModel: ObservableObject {
             statusMessage = "That needs Face ID or the vault passcode."
             return
         }
+        let parent = folders.first(where: { $0.id == id })?.parentID
         folders.removeAll { $0.id == id }
+        for index in folders.indices where folders[index].parentID == id {
+            folders[index].parentID = parent
+        }
         for index in items.indices where items[index].folderID == id {
-            items[index].folderID = nil
+            items[index].folderID = parent
         }
         library.folders = folders
         library.items = items
         unlockedFolders.remove(id)
+        persist()
+    }
+
+    func setFolderPinned(id: UUID, pinned: Bool) {
+        guard let index = folders.firstIndex(where: { $0.id == id }) else { return }
+        folders[index].isPinned = pinned
+        library.folders = folders
         persist()
     }
 
@@ -636,7 +724,7 @@ final class VaultFilesViewModel: ObservableObject {
             try store.plaintextCopy(of: item, using: master, to: destination)
         }.value
         if stripLocation, item.type == .photo, let jpeg = LocationStripper.jpegWithoutLocation(from: destination) {
-            try jpeg.write(to: destination, options: .completeFileProtectionUnlessOpen)
+            try jpeg.write(to: destination, options: .completeFileProtection)
         }
         return destination
     }
@@ -657,7 +745,7 @@ final class VaultFilesViewModel: ObservableObject {
             try store.exportCopy(of: item, using: master, to: destination, proof: proof)
         }.value
         if stripLocation, item.type == .photo, let jpeg = LocationStripper.jpegWithoutLocation(from: destination) {
-            try jpeg.write(to: destination, options: .completeFileProtectionUnlessOpen)
+            try jpeg.write(to: destination, options: .completeFileProtection)
         }
         return destination
     }
@@ -747,8 +835,18 @@ final class VaultFilesViewModel: ObservableObject {
     }
 
     private func copyToTemp(_ url: URL) throws -> URL {
-        let destination = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("NoteLyPlain", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: folder,
+            withIntermediateDirectories: true,
+            attributes: [.protectionKey: FileProtectionType.complete]
+        )
+        let destination = folder.appendingPathComponent(UUID().uuidString)
         try FileManager.default.copyItem(at: url, to: destination)
+        try? FileManager.default.setAttributes(
+            [.protectionKey: FileProtectionType.complete],
+            ofItemAtPath: destination.path
+        )
         return destination
     }
 
@@ -761,7 +859,10 @@ final class VaultFilesViewModel: ObservableObject {
 
     private func removeFromPhotoLibrary(_ identifiers: [String]) async {
         let assets = PHAsset.fetchAssets(withLocalIdentifiers: identifiers, options: nil)
-        guard assets.count > 0 else { return }
+        guard assets.count > 0 else {
+            statusMessage = "Saved. Originals stayed in Photos"
+            return
+        }
         do {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 PHPhotoLibrary.shared().performChanges {
@@ -776,9 +877,9 @@ final class VaultFilesViewModel: ObservableObject {
                     }
                 }
             }
-            statusMessage = "Removed from Photos. Empty Recently Deleted in the Photos app to finish."
+            statusMessage = "Removed from Photos"
         } catch {
-            statusMessage = "Photos kept the originals. You can delete them in the Photos app."
+            statusMessage = "Photos kept the originals"
         }
     }
 
@@ -842,10 +943,20 @@ struct VaultTempFile: Transferable {
     }
 
     static func copy(_ url: URL) throws -> URL {
-        let destination = FileManager.default.temporaryDirectory
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("NoteLyPlain", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: folder,
+            withIntermediateDirectories: true,
+            attributes: [.protectionKey: FileProtectionType.complete]
+        )
+        let destination = folder
             .appendingPathComponent(UUID().uuidString)
             .appendingPathExtension(url.pathExtension)
         try FileManager.default.copyItem(at: url, to: destination)
+        try? FileManager.default.setAttributes(
+            [.protectionKey: FileProtectionType.complete],
+            ofItemAtPath: destination.path
+        )
         return destination
     }
 }

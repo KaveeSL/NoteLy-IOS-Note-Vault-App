@@ -46,7 +46,11 @@ enum VaultLibraryQuery {
         query: String
     ) -> [VaultItem] {
         var result = items.filter { item in
-            item.folderID == folderID && !trash.contains(item.id)
+            guard !trash.contains(item.id) else { return false }
+            if filter == .all {
+                return item.folderID == folderID
+            }
+            return true
         }
         switch filter {
         case .all: break

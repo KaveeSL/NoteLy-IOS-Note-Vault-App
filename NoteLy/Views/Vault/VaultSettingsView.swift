@@ -32,7 +32,6 @@ struct VaultSettingsView: View {
     @State private var currentPasscode = ""
     @State private var nextPasscode = ""
     @State private var confirmPasscode = ""
-    @State private var redoingSetup = false
     @State private var showingWelcome = false
     @State private var confirmStartOver = false
     @State private var showCodeGate = false
@@ -104,13 +103,8 @@ struct VaultSettingsView: View {
                     Label("Welcome", systemImage: "hand.wave")
                 }
                 .accessibilityIdentifier("vault.welcome")
-                Button {
-                    redoingSetup = true
-                } label: {
-                    Label("Redo setup", systemImage: "arrow.counterclockwise")
-                }
             } footer: {
-                Text("Welcome shows the introduction. Redo setup replaces the phrase and the code.")
+                Text("Welcome shows the introduction.")
             }
 
             if JailbreakChecker.hasSuspiciousEnvironment {
@@ -178,7 +172,7 @@ struct VaultSettingsView: View {
                     authorize(phrase: false)
                 }
             } footer: {
-                Text("Face ID opens this space. You can change the 6-digit code here.")
+                Text("Face ID opens this space when this iPhone has it. The 6-digit code is used only on a phone without Face ID.")
             }
 
             Section {
@@ -307,13 +301,10 @@ struct VaultSettingsView: View {
         }
         .alert("That code doesn't match.", isPresented: $codeMismatch) {
             Button("OK") {}
+                .tint(Color(red: 0.0, green: 0.45, blue: 1))
         }
         .sheet(isPresented: $showingWelcome) {
             GuidedOnboardingView(mode: .replay)
-                .environmentObject(appState)
-        }
-        .sheet(isPresented: $redoingSetup) {
-            GuidedOnboardingView(mode: .redo)
                 .environmentObject(appState)
         }
         .navigationTitle("Private Settings")
@@ -398,20 +389,24 @@ struct VaultSettingsView: View {
 
     private func phraseSheet(decoy: Bool) -> some View {
         NavigationStack {
-            Form {
-                SecureField("New phrase", text: $newPhrase)
-                    .textContentType(nil)
-                    .textInputAutocapitalization(.never)
-                SecureField("Confirm new phrase", text: $phraseConfirm)
-                    .textContentType(nil)
-                    .textInputAutocapitalization(.never)
-                Text("Saving asks for Face ID or your device passcode.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                if let sheetMessage {
-                    Text(sheetMessage).foregroundStyle(.red)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Type it in Search when you want to open it.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    PlainTextBox(title: "New phrase", text: $newPhrase)
+                    PlainTextBox(title: "Type it again", text: $phraseConfirm)
+                    PhraseStrengthMeter(phrase: newPhrase)
+                    Text("Face ID confirms the save. If you forget the new phrase, it can't be recovered.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    if let sheetMessage {
+                        Text(sheetMessage).foregroundStyle(.red)
+                    }
                 }
+                .padding(20)
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Change phrase")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -431,22 +426,21 @@ struct VaultSettingsView: View {
 
     private var decoySheet: some View {
         NavigationStack {
-            Form {
-                SecureField("Second phrase", text: $newPhrase)
-                    .textContentType(nil)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                SecureField("Confirm phrase", text: $phraseConfirm)
-                    .textContentType(nil)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                Text("This phrase must be different from the one that opens these notes.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                if let sheetMessage {
-                    Text(sheetMessage).foregroundStyle(.red)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    PlainTextBox(title: "Second phrase", text: $newPhrase)
+                    PlainTextBox(title: "Type it again", text: $phraseConfirm)
+                    PhraseStrengthMeter(phrase: newPhrase)
+                    Text("This phrase must be different from the one that opens these notes.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    if let sheetMessage {
+                        Text(sheetMessage).foregroundStyle(.red)
+                    }
                 }
+                .padding(20)
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Second phrase")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -53,7 +53,7 @@ extension CryptoService {
         manager.createFile(
             atPath: temp.path,
             contents: nil,
-            attributes: [.protectionKey: FileProtectionType.completeUnlessOpen]
+            attributes: [.protectionKey: FileProtectionType.complete]
         )
         let output = try FileHandle(forWritingTo: temp)
         defer { try? output.close() }
@@ -265,7 +265,7 @@ extension CryptoService {
     private func applyFileProtection(_ url: URL) throws {
         do {
             try FileManager.default.setAttributes(
-                [.protectionKey: FileProtectionType.completeUnlessOpen],
+                [.protectionKey: FileProtectionType.complete],
                 ofItemAtPath: url.path
             )
         } catch {

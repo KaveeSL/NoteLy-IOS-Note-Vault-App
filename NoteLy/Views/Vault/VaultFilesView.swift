@@ -8,7 +8,6 @@ struct VaultFilesView: View {
     @ObservedObject var model: VaultFilesViewModel
     @State private var showFiles = false
     @State private var showCamera = false
-    @State private var removeFromPhotos = false
     @State private var viewer: VaultItem?
     @State private var exportURL: URL?
     @State private var shareURLs: [URL] = []
@@ -23,8 +22,12 @@ struct VaultFilesView: View {
     @State private var settingPasscode = false
     @State private var renameFolderTarget: VaultFolder?
     @State private var renameFolderText = ""
-    @State private var explainPhotos = false
-    @State private var explainCamera = false
+    @State private var askPlacement = false
+    @State private var incoming: IncomingImport?
+
+    private enum IncomingImport {
+        case photos, files, camera
+    }
 
     private let columns = [
         GridItem(.flexible(), spacing: 1),
@@ -35,43 +38,33 @@ struct VaultFilesView: View {
     var body: some View {
         VStack(spacing: 0) {
             filterBar
-            if model.gallery {
+            if model.gallery && !model.visibleItems.isEmpty {
+                if model.filter == .all && !model.childFolders.isEmpty {
+                    folderList
+                        .frame(height: folderListHeight)
+                }
                 ScrollView {
-                    if model.folderID == nil, !model.folders.isEmpty {
-                        folderSection
-                    }
-                    if model.visibleItems.isEmpty {
-                        emptyFiles
-                    } else {
-                        LazyVGrid(columns: columns, spacing: 1) {
-                            ForEach(model.visibleItems) { item in
-                                cell(item)
-                            }
+                    LazyVGrid(columns: columns, spacing: 1) {
+                        ForEach(model.visibleItems) { item in
+                            cell(item)
                         }
-                        .padding(1)
                     }
+                    .padding(1)
                 }
             } else {
                 List {
-                    if model.folderID == nil, !model.folders.isEmpty {
+                    if model.filter == .all && !model.childFolders.isEmpty {
                         Section {
-                            ForEach(model.folders) { folder in
-                                Button { open(folder) } label: {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: folder.hasPasscode ? "lock.fill" : "folder.fill")
-                                            .foregroundStyle(Theme.vault)
-                                        Text(folder.name)
-                                        Spacer()
-                                        Text("\(model.itemCount(in: folder.id))")
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
+                            ForEach(model.childFolders) { folder in
+                                folderLink(folder)
                             }
                         }
                     }
                     Section {
                         if model.visibleItems.isEmpty {
                             emptyFiles
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
                         } else {
                             ForEach(model.visibleItems) { item in
                                 listRow(item)
@@ -80,6 +73,7 @@ struct VaultFilesView: View {
                     }
                 }
                 .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
             }
             Text(model.storageSummary)
                 .font(.footnote)
@@ -87,53 +81,47 @@ struct VaultFilesView: View {
                 .padding(.bottom, 8)
                 .accessibilityLabel(model.storageSummary)
         }
+        .background(Color(.systemGroupedBackground))
+        .overlay(alignment: .top) {
+            if let status = model.statusMessage {
+                statusBanner(status)
+                    .padding(.top, 58)
+                    .padding(.horizontal, 24)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.smooth(duration: 0.35), value: model.statusMessage)
+        .onAppear { model.filter = .all }
         .navigationTitle(folderTitle)
         .navigationBarBackButtonHidden(model.folderID != nil)
-        .searchable(text: $model.query, prompt: "Search files")
-        .background(SearchFieldTraits())
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            DictationSearchField(text: $model.query, prompt: "Search files")
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+                .padding(.bottom, 8)
+        }
         .toolbar {
             if model.folderID != nil {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
-                        withAnimation(.smooth(duration: 0.3)) { model.folderID = nil }
+                        withAnimation(.smooth(duration: 0.3)) { model.closeFolder() }
                     } label: {
                         Image(systemName: "chevron.backward")
                     }
-                    .accessibilityLabel("Files")
+                    .accessibilityLabel(folderBackTitle)
                 }
             }
             toolbar
         }
         .sheet(item: $viewer) { item in
-            VaultItemViewer(item: item, model: model)
+            VaultItemViewer(item: item, items: swipeStrip(for: item), model: model)
         }
-        .sheet(isPresented: $explainPhotos) {
-            PermissionPrimer(
-                symbol: "photo.on.rectangle",
-                title: "Photos stay in the vault",
-                message: "The photo picker opens only when you choose to import. NoteLy does not upload the library.",
-                confirmTitle: "Choose photos",
-                onConfirm: {
-                    appState.markPermissionExplained(.photos)
-                    explainPhotos = false
-                    model.wantsPhotoPicker = true
-                },
-                onCancel: { explainPhotos = false }
-            )
-        }
-        .sheet(isPresented: $explainCamera) {
-            PermissionPrimer(
-                symbol: "camera",
-                title: "Camera for private capture",
-                message: "The camera is used only when you take a photo or scan into the vault. You can say no.",
-                confirmTitle: "Continue",
-                onConfirm: {
-                    appState.markPermissionExplained(.camera)
-                    explainCamera = false
-                    showCamera = true
-                },
-                onCancel: { explainCamera = false }
-            )
+        .confirmationDialog("Add to the vault", isPresented: $askPlacement, titleVisibility: .visible) {
+            Button("Move") { startImport(removeOriginal: true) }
+            Button("Copy") { startImport(removeOriginal: false) }
+            Button("Cancel", role: .cancel) { incoming = nil }
+        } message: {
+            Text("Move removes the original. Copy leaves it where it is.")
         }
         .sheet(isPresented: $showCamera, onDismiss: { appState.setSystemUI(false) }) {
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
@@ -147,7 +135,7 @@ struct VaultFilesView: View {
         .fileImporter(isPresented: $showFiles, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
             appState.setSystemUI(false)
             if case .success(let urls) = result {
-                model.importSecurityScoped(urls)
+                model.importSecurityScoped(urls, removeOriginals: model.removeImportedOriginals)
             }
         }
         .onChange(of: showFiles) { _, presented in
@@ -156,7 +144,10 @@ struct VaultFilesView: View {
         .onChange(of: showCamera) { _, presented in
             if presented { appState.setSystemUI(true) }
         }
-        .sheet(isPresented: sharePresented, onDismiss: { appState.setSystemUI(false) }) {
+        .sheet(isPresented: sharePresented, onDismiss: {
+            appState.setSystemUI(false)
+            VaultFileStore.purgeTemporaryFiles()
+        }) {
             NavigationStack {
                 VStack(spacing: 16) {
                     Text("Exported files leave the protected vault.")
@@ -177,7 +168,10 @@ struct VaultFilesView: View {
             }
             .onAppear { appState.setSystemUI(true) }
         }
-        .sheet(isPresented: exportPresented, onDismiss: { appState.setSystemUI(false) }) {
+        .sheet(isPresented: exportPresented, onDismiss: {
+            appState.setSystemUI(false)
+            VaultFileStore.purgeTemporaryFiles()
+        }) {
             if let exportURL {
                 NavigationStack {
                     VStack(spacing: 16) {
@@ -231,7 +225,7 @@ struct VaultFilesView: View {
         .alert("New folder", isPresented: $showNewFolder) {
             TextField("Name", text: $newFolder)
             Button("Create") {
-                model.createFolder(name: newFolder)
+                model.createFolder(name: newFolder, parent: model.folderID)
                 newFolder = ""
             }
             Button("Cancel", role: .cancel) { newFolder = "" }
@@ -243,7 +237,7 @@ struct VaultFilesView: View {
             }
             Button("Cancel", role: .cancel) { pendingFolderDelete = nil }
         } message: {
-            Text("Files in this folder stay in the library.")
+            Text("Files in this folder stay in the folder you opened it from.")
         }
         .alert("Delete this file?", isPresented: deletePresented) {
             Button("Delete", role: .destructive) {
@@ -271,16 +265,6 @@ struct VaultFilesView: View {
                 ImportProgressSheet(progress: progress) { model.cancelImport() }
             }
         }
-        .overlay(alignment: .bottom) {
-            if let status = model.statusMessage {
-                Text(status)
-                    .font(.footnote)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .notesGlass(in: Capsule())
-                    .padding(.bottom, 28)
-            }
-        }
         .onDisappear {
             if exportURL != nil {
                 VaultFileStore.purgeTemporaryFiles()
@@ -298,6 +282,16 @@ struct VaultFilesView: View {
             return folder.name
         }
         return "Files"
+    }
+
+    private var folderBackTitle: String {
+        guard let id = model.folderID,
+              let folder = model.folders.first(where: { $0.id == id }),
+              let parent = folder.parentID,
+              let name = model.folders.first(where: { $0.id == parent })?.name else {
+            return "Files"
+        }
+        return name
     }
 
     private var emptyFiles: some View {
@@ -335,60 +329,101 @@ struct VaultFilesView: View {
         Binding(get: { renameFolderTarget != nil }, set: { if !$0 { renameFolderTarget = nil } })
     }
 
-    private var folderSection: some View {
-        VStack(spacing: 0) {
-            ForEach(model.folders) { folder in
-                Button {
-                    open(folder)
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: folder.hasPasscode ? "lock.fill" : "folder.fill")
-                            .foregroundStyle(Theme.vault)
-                            .frame(width: 28)
-                        Text(folder.name)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Text("\(model.itemCount(in: folder.id))")
-                            .foregroundStyle(.secondary)
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                }
-                .buttonStyle(.plain)
-                .contextMenu {
-                    Button {
-                        settingPasscode = true
-                        gateCode = ""
-                        gateFolder = folder
-                    } label: {
-                        Label(folder.hasPasscode ? "Change Passcode" : "Set Passcode", systemImage: "lock")
-                    }
-                    if folder.hasPasscode {
-                        Button { model.clearFolderPasscode(id: folder.id) } label: {
-                            Label("Remove Passcode", systemImage: "lock.open")
-                        }
-                    }
-                    Button {
-                        renameFolderText = folder.name
-                        renameFolderTarget = folder
-                    } label: {
-                        Label("Rename", systemImage: "pencil")
-                    }
-                    Button(role: .destructive) { pendingFolderDelete = folder } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
-                if folder.id != model.folders.last?.id {
-                    Divider().padding(.leading, 56)
-                }
+    private func folderLink(_ folder: VaultFolder) -> some View {
+        Button {
+            open(folder)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: folder.isPinned ? "pin.fill" : (folder.hasPasscode ? "lock.fill" : "folder.fill"))
+                    .foregroundStyle(folder.isPinned ? Theme.accent : Theme.vault)
+                    .frame(width: 28)
+                Text(folder.name)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Text("\(model.itemCount(in: folder.id))")
+                    .foregroundStyle(.secondary)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
             }
         }
-        .background(Theme.cardBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
+        .buttonStyle(.borderless)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) { pendingFolderDelete = folder } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .tint(.red)
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            Button {
+                model.setFolderPinned(id: folder.id, pinned: !folder.isPinned)
+            } label: {
+                Label(folder.isPinned ? "Unpin" : "Pin", systemImage: folder.isPinned ? "pin.slash" : "pin")
+            }
+            .tint(folder.isPinned ? Color(.systemGray) : Theme.accent)
+            Button {
+                renameFolderText = folder.name
+                renameFolderTarget = folder
+            } label: {
+                Label("Rename", systemImage: "pencil")
+            }
+            .tint(Color(.systemOrange))
+        }
+        .contextMenu {
+            Button {
+                model.setFolderPinned(id: folder.id, pinned: !folder.isPinned)
+            } label: {
+                Label(folder.isPinned ? "Unpin" : "Pin", systemImage: folder.isPinned ? "pin.slash" : "pin")
+            }
+            Button {
+                settingPasscode = true
+                gateCode = ""
+                gateFolder = folder
+            } label: {
+                Label(folder.hasPasscode ? "Change Passcode" : "Set Passcode", systemImage: "lock")
+            }
+            if folder.hasPasscode {
+                Button { model.clearFolderPasscode(id: folder.id) } label: {
+                    Label("Remove Passcode", systemImage: "lock.open")
+                }
+            }
+            Button {
+                renameFolderText = folder.name
+                renameFolderTarget = folder
+            } label: {
+                Label("Rename", systemImage: "pencil")
+            }
+            Button(role: .destructive) { pendingFolderDelete = folder } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .tint(.red)
+        }
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func startImport(removeOriginal: Bool) {
+        let kind = incoming
+        incoming = nil
+        askPlacement = false
+        switch kind {
+        case .photos:
+            Task {
+                if removeOriginal {
+                    guard await model.allowPhotoRemoval() else { return }
+                }
+                appState.markPermissionExplained(.photos)
+                model.removeImportedOriginals = removeOriginal
+                model.wantsPhotoPicker = true
+            }
+        case .files:
+            model.removeImportedOriginals = removeOriginal
+            showFiles = true
+        case .camera:
+            appState.markPermissionExplained(.camera)
+            showCamera = true
+        case nil:
+            break
+        }
     }
 
     private func open(_ folder: VaultFolder) {
@@ -415,6 +450,12 @@ struct VaultFilesView: View {
         }
         gateFolder = nil
         gateCode = ""
+    }
+
+    private func swipeStrip(for item: VaultItem) -> [VaultItem] {
+        let media = model.visibleItems.filter { $0.type == .photo || $0.type == .video }
+        if media.contains(where: { $0.id == item.id }) { return media }
+        return [item]
     }
 
     private func listRow(_ item: VaultItem) -> some View {
@@ -447,6 +488,30 @@ struct VaultFilesView: View {
         }
         .buttonStyle(.plain)
         .contextMenu { itemMenu(item) }
+    }
+
+    private func statusBanner(_ status: String) -> some View {
+        let failed = status.localizedCaseInsensitiveContains("kept")
+            || status.localizedCaseInsensitiveContains("couldn't")
+            || status.localizedCaseInsensitiveContains("can't")
+            || status.localizedCaseInsensitiveContains("doesn't")
+            || status.localizedCaseInsensitiveContains("not enough")
+            || status.localizedCaseInsensitiveContains("stayed")
+        return HStack(spacing: 8) {
+            Image(systemName: failed ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(failed ? Color.orange : Color.green)
+            Text(status)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+        }
+        .padding(.leading, 12)
+        .padding(.trailing, 16)
+        .padding(.vertical, 10)
+        .notesGlass(in: Capsule())
+        .accessibilityLabel(status)
     }
 
     private var filterBar: some View {
@@ -495,8 +560,36 @@ struct VaultFilesView: View {
             }
         }
         .buttonStyle(.plain)
-        .contextMenu { itemMenu(item) }
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .contextMenu {
+            itemMenu(item)
+        } preview: {
+            Color(.secondarySystemBackground)
+                .frame(width: 240, height: 240)
+                .overlay {
+                    ThumbnailView(item: item, model: model)
+                        .scaledToFill()
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
         .accessibilityLabel(item.originalName)
+    }
+
+    private var folderList: some View {
+        List {
+            Section {
+                ForEach(model.childFolders) { folder in
+                    folderLink(folder)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .scrollDisabled(model.childFolders.count < 6)
+    }
+
+    private var folderListHeight: CGFloat {
+        CGFloat(min(model.childFolders.count, 6)) * 54 + 16
     }
 
     @ViewBuilder
@@ -571,19 +664,16 @@ struct VaultFilesView: View {
             .accessibilityLabel("Sort and view")
             Menu {
                 Button("Photos or Videos") {
-                    if appState.needsPermissionExplanation(.photos) {
-                        explainPhotos = true
-                    } else {
-                        model.wantsPhotoPicker = true
-                    }
+                    incoming = .photos
+                    askPlacement = true
                 }
-                Button("Files") { showFiles = true }
+                Button("Files") {
+                    incoming = .files
+                    askPlacement = true
+                }
                 Button("Camera") {
-                    if appState.needsPermissionExplanation(.camera) {
-                        explainCamera = true
-                    } else {
-                        showCamera = true
-                    }
+                    incoming = .camera
+                    askPlacement = true
                 }
             } label: {
                 Image(systemName: "plus")

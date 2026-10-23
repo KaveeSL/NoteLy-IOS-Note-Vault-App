@@ -96,6 +96,11 @@ final class VaultFileCryptoTests: XCTestCase {
         }
         let result = try crypto.encryptFile(at: source, to: sealed, fileID: UUID(), using: key, shouldContinue: { true })
         XCTAssertEqual(result.plaintextBytes, Int64(count))
+        let sealedBytes = try Data(contentsOf: sealed)
+        XCTAssertEqual(Array(sealedBytes.prefix(4)), [0x4E, 0x4C, 0x46, 0x32])
+        XCTAssertNotEqual(sealedBytes, try Data(contentsOf: source))
+        let protection = try sealed.resourceValues(forKeys: [.fileProtectionKey]).fileProtection
+        XCTAssertEqual(protection, .complete)
         try crypto.decryptFile(at: sealed, to: opened, using: key)
         XCTAssertEqual(try Data(contentsOf: source), try Data(contentsOf: opened))
     }

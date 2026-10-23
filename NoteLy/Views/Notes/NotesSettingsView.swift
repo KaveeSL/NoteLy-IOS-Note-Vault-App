@@ -105,6 +105,7 @@ struct NotesSettingsView: View {
         }
         .alert("Phrase updated", isPresented: $showingNotice) {
             Button("OK") {}
+                .tint(Color(red: 0.0, green: 0.45, blue: 1))
         } message: {
             Text(notice)
         }
@@ -160,21 +161,29 @@ struct NotesSettingsView: View {
     }
 
     private var phraseEntry: some View {
-        Form {
-            Section {
-                phraseField("New phrase", text: $newPhrase)
-                phraseField("Type it again", text: $phraseConfirm)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                phraseHint("magnifyingglass", "Type it in Search when you want to open it.")
+                phraseHint("eye.slash", "Pick words you would never use for a note.")
+                PlainTextBox(title: "New phrase", text: $newPhrase, secure: !showPhrase)
+                    .onChange(of: newPhrase) { _, _ in phraseMessage = "" }
+                PlainTextBox(title: "Type it again", text: $phraseConfirm, secure: !showPhrase)
+                    .onChange(of: phraseConfirm) { _, _ in phraseMessage = "" }
                 Toggle("Show phrase", isOn: $showPhrase)
-            } footer: {
-                Text("Type the new phrase in Search when you want to open the hidden space. If you forget it, it can't be recovered.")
-            }
-            if !phraseMessage.isEmpty {
-                Section {
-                    Text(phraseMessage)
+                    .font(.body)
+                PhraseStrengthMeter(phrase: newPhrase)
+                if let note = livePhraseNote {
+                    Text(note)
+                        .font(.subheadline)
                         .foregroundStyle(.primary)
                 }
+                Text("If you forget the new phrase, it can't be recovered.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
+            .padding(20)
         }
+        .background(Color(.systemGroupedBackground))
         .navigationTitle("New phrase")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -189,26 +198,33 @@ struct NotesSettingsView: View {
         .privacySensitive()
     }
 
-    private func phraseField(_ title: String, text: Binding<String>) -> some View {
-        Group {
-            if showPhrase {
-                TextField(title, text: text)
-            } else {
-                SecureField(title, text: text)
-            }
-        }
-        .textInputAutocapitalization(.never)
-        .autocorrectionDisabled()
-        .textContentType(.none)
-        .privacySensitive()
-        .onChange(of: text.wrappedValue) { _, _ in
-            phraseMessage = ""
+    private func phraseHint(_ symbol: String, _ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 22, alignment: .center)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(.system(size: 15))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private var phraseReady: Bool {
         if case .invalid = PhraseValidator.validate(newPhrase) { return false }
         return PhraseValidator.normalize(newPhrase) == PhraseValidator.normalize(phraseConfirm) && !phraseConfirm.isEmpty
+    }
+
+    private var livePhraseNote: String? {
+        if !phraseMessage.isEmpty { return phraseMessage }
+        if newPhrase.isEmpty { return nil }
+        if case .invalid(let reason) = PhraseValidator.validate(newPhrase) { return reason }
+        if !phraseConfirm.isEmpty, PhraseValidator.normalize(newPhrase) != PhraseValidator.normalize(phraseConfirm) {
+            return "Those phrases don't match."
+        }
+        return nil
     }
 
     private func digit(_ label: String) -> some View {

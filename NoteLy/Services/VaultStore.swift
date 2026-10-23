@@ -219,8 +219,16 @@ final class VaultStore: VaultStoring, @unchecked Sendable {
 
     private func prepareDirectories() throws {
         do {
-            try fileManager.createDirectory(at: notesDirectory, withIntermediateDirectories: true)
-            try fileManager.createDirectory(at: attachmentsDirectory, withIntermediateDirectories: true)
+            try fileManager.createDirectory(
+                at: notesDirectory,
+                withIntermediateDirectories: true,
+                attributes: [.protectionKey: FileProtectionType.complete]
+            )
+            try fileManager.createDirectory(
+                at: attachmentsDirectory,
+                withIntermediateDirectories: true,
+                attributes: [.protectionKey: FileProtectionType.complete]
+            )
         } catch {
             throw VaultError.persistenceFailed
         }
@@ -239,7 +247,7 @@ final class VaultStore: VaultStoring, @unchecked Sendable {
     }
 
     private var writeOptions: Data.WritingOptions {
-        [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+        [.atomic, .completeFileProtection]
     }
 
     private func backupExcludedFlag() -> Bool {

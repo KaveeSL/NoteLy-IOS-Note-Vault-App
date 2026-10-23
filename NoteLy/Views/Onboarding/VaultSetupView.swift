@@ -86,20 +86,11 @@ struct VaultSetupView: View {
         }
         .navigationTitle("Private Vault")
         .navigationBarTitleDisplayMode(.inline)
+        .background(Color(.systemGroupedBackground))
     }
 
     private func labeledField(title: String, text: Binding<String>, identifier: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-            SecureField(title, text: text)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .textContentType(nil)
-                .padding(12)
-                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .accessibilityIdentifier(identifier)
-        }
+        PlainTextBox(title: title, text: text, identifier: identifier)
     }
 
     private func warning(_ text: String) -> some View {

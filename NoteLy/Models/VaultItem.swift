@@ -128,22 +128,35 @@ struct VaultFolder: Codable, Identifiable, Equatable, Sendable {
     var id: UUID
     var name: String
     var createdAt: Date
+    /// Nil means this folder sits at the Files root. A value means it lives inside that folder.
+    var parentID: UUID? = nil
+    var isPinned: Bool = false
     /// Salted hash of an extra folder passcode. Nil means the folder opens with the vault.
     var passcodeSalt: Data? = nil
     var passcodeHash: Data? = nil
 
     var hasPasscode: Bool { passcodeHash != nil }
 
-    init(id: UUID = UUID(), name: String, createdAt: Date = .now, passcodeSalt: Data? = nil, passcodeHash: Data? = nil) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        createdAt: Date = .now,
+        parentID: UUID? = nil,
+        isPinned: Bool = false,
+        passcodeSalt: Data? = nil,
+        passcodeHash: Data? = nil
+    ) {
         self.id = id
         self.name = name
         self.createdAt = createdAt
+        self.parentID = parentID
+        self.isPinned = isPinned
         self.passcodeSalt = passcodeSalt
         self.passcodeHash = passcodeHash
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, createdAt, passcodeSalt, passcodeHash
+        case id, name, createdAt, parentID, isPinned, passcodeSalt, passcodeHash
     }
 
     init(from decoder: Decoder) throws {
@@ -151,6 +164,8 @@ struct VaultFolder: Codable, Identifiable, Equatable, Sendable {
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
+        parentID = try container.decodeIfPresent(UUID.self, forKey: .parentID)
+        isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
         passcodeSalt = try container.decodeIfPresent(Data.self, forKey: .passcodeSalt)
         passcodeHash = try container.decodeIfPresent(Data.self, forKey: .passcodeHash)
     }
@@ -160,6 +175,8 @@ struct VaultFolder: Codable, Identifiable, Equatable, Sendable {
         try container.encode(id, forKey: .id)
         try container.encode(name, forKey: .name)
         try container.encode(createdAt, forKey: .createdAt)
+        try container.encodeIfPresent(parentID, forKey: .parentID)
+        try container.encode(isPinned, forKey: .isPinned)
         try container.encodeIfPresent(passcodeSalt, forKey: .passcodeSalt)
         try container.encodeIfPresent(passcodeHash, forKey: .passcodeHash)
     }

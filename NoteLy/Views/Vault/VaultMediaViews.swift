@@ -7,32 +7,65 @@ import SwiftUI
 import UIKit
 
 struct VaultItemViewer: View {
-    let item: VaultItem
+    let items: [VaultItem]
     @ObservedObject var model: VaultFilesViewModel
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var image: UIImage?
-    @State private var pdfData: Data?
-    @State private var previewURL: URL?
-    @State private var player: AVPlayer?
-    @State private var loader: VaultAssetLoader?
-    @State private var failed = false
+    @State private var position: Int?
     @State private var showInfo = false
+
+    init(item: VaultItem, items strip: [VaultItem]? = nil, model: VaultFilesViewModel) {
+        let pages: [VaultItem]
+        if let strip, !strip.isEmpty {
+            pages = strip
+        } else {
+            pages = [item]
+        }
+        self.items = pages
+        let start = pages.firstIndex(where: { $0.id == item.id }) ?? 0
+        _position = State(initialValue: start)
+        self.model = model
+    }
+
+    private var current: VaultItem {
+        let index = position ?? 0
+        if items.indices.contains(index) { return items[index] }
+        return items[0]
+    }
 
     var body: some View {
         NavigationStack {
-            Group {
-                if failed {
-                    ContentUnavailableView("File can't be opened", systemImage: "exclamationmark.triangle")
-                } else {
-                    content
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 0) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
+                        VaultGalleryPage(item: item, active: position == offset, model: model)
+                            .containerRelativeFrame([.horizontal, .vertical])
+                            .id(offset)
+                    }
                 }
+                .scrollTargetLayout()
             }
-            .navigationTitle(item.type == .photo ? "Photo" : (item.type == .video ? "Video" : "File"))
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $position)
+            .scrollIndicators(.hidden)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { close() }
+                    Button("Done") { dismiss() }
+                }
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 0) {
+                        Text(current.type == .photo ? "Photo" : (current.type == .video ? "Video" : "File"))
+                            .font(.headline)
+                        if items.count > 1 {
+                            Text("\(min((position ?? 0) + 1, items.count)) of \(items.count)")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                    }
+                    .foregroundStyle(.white)
+                    .accessibilityElement(children: .combine)
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -43,12 +76,15 @@ struct VaultItemViewer: View {
                     .accessibilityLabel("Info")
                 }
             }
+            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(isPresented: $showInfo) {
                 NavigationStack {
                     List {
-                        LabeledContent("Name", value: item.originalName)
-                        LabeledContent("Size", value: ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))
-                        LabeledContent("Added", value: item.importedAt.formatted(date: .abbreviated, time: .shortened))
+                        LabeledContent("Name", value: current.originalName)
+                        LabeledContent("Size", value: ByteCountFormatter.string(fromByteCount: current.size, countStyle: .file))
+                        LabeledContent("Added", value: current.importedAt.formatted(date: .abbreviated, time: .shortened))
                     }
                     .navigationTitle("Info")
                     .navigationBarTitleDisplayMode(.inline)
@@ -61,17 +97,53 @@ struct VaultItemViewer: View {
                 .presentationDetents([.medium])
             }
         }
-        .task { await open() }
-        .onChange(of: scenePhase) { _, phase in
-            if phase != .active {
-                player?.pause()
+        .onAppear { updateRotation() }
+        .onChange(of: position) { _, _ in updateRotation() }
+        .onDisappear {
+            AppOrientation.apply(.portrait)
+            VaultFileStore.purgeTemporaryFiles()
+        }
+    }
+
+    private func updateRotation() {
+        if current.type == .photo || current.type == .video {
+            AppOrientation.apply(.allButUpsideDown)
+        } else {
+            AppOrientation.apply(.portrait)
+        }
+    }
+}
+
+private struct VaultGalleryPage: View {
+    let item: VaultItem
+    let active: Bool
+    @ObservedObject var model: VaultFilesViewModel
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var image: UIImage?
+    @State private var pdfData: Data?
+    @State private var previewURL: URL?
+    @State private var player: AVPlayer?
+    @State private var failed = false
+
+    var body: some View {
+        ZStack {
+            Color.black
+            if failed {
+                ContentUnavailableView("File can't be opened", systemImage: "exclamationmark.triangle")
+            } else {
+                content
             }
         }
-        .onDisappear { closeTemps() }
-        .task(id: item.id) {
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            guard !Task.isCancelled else { return }
-            model.recordOpen(id: item.id)
+        .task(id: active) {
+            if active {
+                await open()
+                if active { model.recordOpen(id: item.id) }
+            } else {
+                release()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { player?.pause() }
         }
     }
 
@@ -82,43 +154,57 @@ struct VaultItemViewer: View {
             if let image {
                 ZoomableImage(image: image)
             } else {
-                ProgressView()
+                ProgressView().tint(.white)
             }
         case .video:
             if let player {
                 VideoPlayer(player: player)
-                    .onAppear { player.play() }
+                    .onAppear { if active { player.play() } }
             } else {
-                ProgressView()
+                ProgressView().tint(.white)
             }
         case .pdf:
             if let pdfData {
                 PDFKitView(data: pdfData)
             } else {
-                ProgressView()
+                ProgressView().tint(.white)
             }
         case .audio, .archive, .document, .other:
             if let previewURL {
                 QuickLookPreview(url: previewURL)
             } else {
-                ProgressView()
+                ProgressView().tint(.white)
             }
         }
     }
 
     private func open() async {
+        release()
+        failed = false
         do {
             switch item.type {
             case .photo:
                 let url = try await model.materialize(item, stripLocation: false)
+                guard active, !Task.isCancelled else {
+                    try? FileManager.default.removeItem(at: url)
+                    return
+                }
                 previewURL = url
                 image = downsampled(url)
             case .pdf:
                 let url = try await model.materialize(item, stripLocation: false)
+                guard active, !Task.isCancelled else {
+                    try? FileManager.default.removeItem(at: url)
+                    return
+                }
                 previewURL = url
                 pdfData = try Data(contentsOf: url)
             case .video:
                 let url = try await model.materialize(item, stripLocation: false)
+                guard active, !Task.isCancelled else {
+                    try? FileManager.default.removeItem(at: url)
+                    return
+                }
                 previewURL = url
                 let session = AVAudioSession.sharedInstance()
                 try? session.setCategory(.playback, mode: .moviePlayback)
@@ -126,27 +212,28 @@ struct VaultItemViewer: View {
                 let created = AVPlayer(playerItem: AVPlayerItem(url: url))
                 created.isMuted = false
                 player = created
+                if active { created.play() }
             case .audio, .archive, .document, .other:
-                previewURL = try await model.materialize(item, stripLocation: false)
+                let url = try await model.materialize(item, stripLocation: false)
+                guard active, !Task.isCancelled else {
+                    try? FileManager.default.removeItem(at: url)
+                    return
+                }
+                previewURL = url
             }
         } catch {
             failed = true
         }
     }
 
-    private func close() {
-        player?.pause()
-        closeTemps()
-        dismiss()
-    }
-
-    private func closeTemps() {
+    private func release() {
         player?.pause()
         player = nil
-        loader = nil
         pdfData = nil
         image = nil
-        VaultFileStore.purgeTemporaryFiles()
+        if let previewURL {
+            try? FileManager.default.removeItem(at: previewURL)
+        }
         previewURL = nil
     }
 
@@ -262,12 +349,16 @@ struct CameraCaptureView: UIViewControllerRepresentable {
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
             if let url = info[.mediaURL] as? URL {
-                let copy = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).mov")
+                let folder = FileManager.default.temporaryDirectory.appendingPathComponent("NoteLyPlain", isDirectory: true)
+                try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                let copy = folder.appendingPathComponent("\(UUID().uuidString).mov")
                 try? FileManager.default.copyItem(at: url, to: copy)
                 onCapture(copy, "Video.mov")
             } else if let image = info[.originalImage] as? UIImage, let data = image.jpegData(compressionQuality: 0.9) {
-                let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).jpg")
-                try? data.write(to: url, options: .completeFileProtectionUnlessOpen)
+                let folder = FileManager.default.temporaryDirectory.appendingPathComponent("NoteLyPlain", isDirectory: true)
+                try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                let url = folder.appendingPathComponent("\(UUID().uuidString).jpg")
+                try? data.write(to: url, options: .completeFileProtection)
                 onCapture(url, "Photo.jpg")
             }
             dismiss()

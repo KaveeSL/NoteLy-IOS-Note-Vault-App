@@ -139,7 +139,8 @@ struct NoteEditorView: View {
             Button("Cancel", role: .cancel) {}
         }
         .alert("Couldn't save this note", isPresented: errorPresented) {
-            Button("OK", role: .cancel) {}
+            Button("OK") {}
+                .tint(Color(red: 0.0, green: 0.45, blue: 1))
         } message: {
             Text(saveError ?? "Try again.")
         }
